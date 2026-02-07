@@ -4,4 +4,6 @@ export interface Invoice {
     amount: number;
     status: 'paid' | 'pending' | 'overdue';
     due_date: string;
+    payment_method?: string;
+    paid_date?: string;
 }

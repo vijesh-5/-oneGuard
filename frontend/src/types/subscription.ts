@@ -1,3 +1,8 @@
+export interface SubscriptionItem {
+    product_id: number;
+    quantity: number;
+}
+
 export interface Subscription {
     id: number;
     customer_name: string;
@@ -10,4 +15,5 @@ export interface Subscription {
 export interface SubscriptionCreate {
     customer_name: string;
     plan_id: number;
+    items: SubscriptionItem[];
 }

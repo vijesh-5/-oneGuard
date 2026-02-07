@@ -4,7 +4,7 @@ import ProductService from '../services/productService';
 
 const Products: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
-    const [newProduct, setNewProduct] = useState<ProductCreate>({ name: '', base_price: 0 });
+    const [newProduct, setNewProduct] = useState<ProductCreate>({ name: '', base_price: 0, is_active: true, description: '', type: '' });
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [loading, setLoading] = useState(true);
 
@@ -24,11 +24,11 @@ const Products: React.FC = () => {
         fetchProducts();
     }, []);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value, type, checked } = e.target;
         setNewProduct(prev => ({
             ...prev,
-            [name]: name === 'base_price' ? parseFloat(value) : value
+            [name]: type === 'checkbox' ? checked : (name === 'base_price' ? parseFloat(value) : value)
         }));
     };
 
@@ -36,7 +36,7 @@ const Products: React.FC = () => {
         e.preventDefault();
         try {
             await ProductService.create(newProduct);
-            setNewProduct({ name: '', base_price: 0 });
+            setNewProduct({ name: '', base_price: 0, is_active: true, description: '', type: '' });
             setIsFormVisible(false);
             fetchProducts(); // Refresh list
         } catch (error) {
@@ -84,7 +84,39 @@ const Products: React.FC = () => {
                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
                             />
                         </div>
-                        <button 
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Description</label>
+                            <textarea
+                                name="description"
+                                value={newProduct.description || ''}
+                                onChange={handleInputChange}
+                                rows={3}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+                            ></textarea>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Type</label>
+                            <input
+                                type="text"
+                                name="type"
+                                value={newProduct.type || ''}
+                                onChange={handleInputChange}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+                            />
+                        </div>
+                        <div className="flex items-center">
+                            <input
+                                type="checkbox"
+                                name="is_active"
+                                checked={newProduct.is_active}
+                                onChange={(e) => setNewProduct(prev => ({ ...prev, is_active: e.target.checked }))}
+                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
+                                Is Active
+                            </label>
+                        </div>
+                        <button
                             type="submit"
                             className="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
                         >
@@ -103,7 +135,10 @@ const Products: React.FC = () => {
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Base Price</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Active</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -111,7 +146,10 @@ const Products: React.FC = () => {
                                 <tr key={product.id}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.id}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.description}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.type}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${product.base_price.toFixed(2)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.is_active ? 'Yes' : 'No'}</td>
                                 </tr>
                             ))}
                         </tbody>

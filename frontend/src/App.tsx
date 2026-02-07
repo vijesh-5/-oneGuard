@@ -4,6 +4,7 @@ import Products from './pages/Products';
 import Plans from './pages/Plans';
 import Subscriptions from './pages/Subscriptions';
 import Invoices from './pages/Invoices';
+import Dashboard from './pages/Dashboard'; // Import Dashboard
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
               -oneGuard
             </h1>
             <nav className="space-x-4">
+              <Link to="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</Link> {/* Add Dashboard link */}
               <Link to="/" className="text-gray-600 hover:text-gray-900">Subscriptions</Link>
               <Link to="/products" className="text-gray-600 hover:text-gray-900">Products</Link>
               <Link to="/plans" className="text-gray-600 hover:text-gray-900">Plans</Link>
@@ -30,6 +32,7 @@ function App() {
                 <Route path="/products" element={<Products />} />
                 <Route path="/plans" element={<Plans />} />
                 <Route path="/invoices" element={<Invoices />} />
+                <Route path="/dashboard" element={<Dashboard />} /> {/* Add Dashboard route */}
                 <Route path="/" element={<Subscriptions />} />
              </Routes>
           </div>

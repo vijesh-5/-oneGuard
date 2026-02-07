@@ -38,7 +38,6 @@ Products may be discontinued but old invoices must still display them.
 ---
 
 ## 2. Plan Model (Upgrade)
-
 Fields:
 - id
 - product_id
