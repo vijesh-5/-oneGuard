@@ -1,31 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { Plan, PlanCreate } from '../types/plan';
 import { Product } from '../types/product';
-
-// Mock data
-const MOCK_PRODUCTS: Product[] = [
-    { id: 1, name: 'Netflix Standard', base_price: 10.99 },
-    { id: 2, name: 'Spotify Premium', base_price: 9.99 },
-];
-
-const MOCK_PLANS: Plan[] = [
-    { id: 1, product_id: 1, name: 'Standard Monthly', interval: 'monthly', price: 10.99 },
-    { id: 2, product_id: 1, name: 'Standard Yearly', interval: 'yearly', price: 120.00 },
-];
+import PlanService from '../services/planService';
+import ProductService from '../services/productService';
 
 const Plans: React.FC = () => {
     const [plans, setPlans] = useState<Plan[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [newPlan, setNewPlan] = useState<PlanCreate>({ product_id: 0, name: '', interval: 'monthly', price: 0 });
     const [isFormVisible, setIsFormVisible] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [fetchedPlans, fetchedProducts] = await Promise.all([
+                PlanService.getAll(),
+                ProductService.getAll()
+            ]);
+            setPlans(fetchedPlans);
+            setProducts(fetchedProducts);
+            if (fetchedProducts.length > 0) {
+                setNewPlan(prev => ({ ...prev, product_id: fetchedProducts[0].id }));
+            }
+        } catch (error) {
+            console.error("Failed to fetch data", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        // Simulate API fetch
-        setPlans(MOCK_PLANS);
-        setProducts(MOCK_PRODUCTS);
-        if (MOCK_PRODUCTS.length > 0) {
-            setNewPlan(prev => ({ ...prev, product_id: MOCK_PRODUCTS[0].id }));
-        }
+        fetchData();
     }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -36,16 +42,16 @@ const Plans: React.FC = () => {
         }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Simulate API call
-        const createdPlan: Plan = {
-            id: plans.length + 1,
-            ...newPlan
-        };
-        setPlans([...plans, createdPlan]);
-        setNewPlan({ product_id: products[0]?.id || 0, name: '', interval: 'monthly', price: 0 });
-        setIsFormVisible(false);
+        try {
+            await PlanService.create(newPlan);
+            setNewPlan({ product_id: products[0]?.id || 0, name: '', interval: 'monthly', price: 0 });
+            setIsFormVisible(false);
+            fetchData();
+        } catch (error) {
+            console.error("Failed to create plan", error);
+        }
     };
 
     const getProductName = (id: number) => {
@@ -130,26 +136,30 @@ const Plans: React.FC = () => {
             )}
 
             <div className="bg-white shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interval</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {plans.map((plan) => (
-                            <tr key={plan.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{getProductName(plan.product_id)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{plan.interval}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${plan.price.toFixed(2)}</td>
+                {loading ? (
+                     <div className="p-6 text-center text-gray-500">Loading plans...</div>
+                ) : (
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interval</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {plans.map((plan) => (
+                                <tr key={plan.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{getProductName(plan.product_id)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{plan.interval}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${plan.price.toFixed(2)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
         </div>
     );

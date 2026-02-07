@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoginRequest } from '../types/auth';
+import AuthService from '../services/authService';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ const Login: React.FC = () => {
     password: '',
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -17,16 +19,17 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     
-    // TODO: Integrate with real API
-    console.log('Login attempt:', formData);
-
-    if (formData.username && formData.password) {
-       // Mock success
-       localStorage.setItem('token', 'mock-token');
+    try {
+       const token = await AuthService.login(formData);
+       localStorage.setItem('token', token.access_token);
        navigate('/');
-    } else {
+    } catch (err) {
+       console.error(err);
        setError('Please enter valid credentials');
+    } finally {
+       setLoading(false);
     }
   };
 
@@ -53,6 +56,7 @@ const Login: React.FC = () => {
                 placeholder="Email address"
                 value={formData.username}
                 onChange={handleChange}
+                disabled={loading}
               />
             </div>
             <div>
@@ -68,6 +72,7 @@ const Login: React.FC = () => {
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleChange}
+                disabled={loading}
               />
             </div>
           </div>
@@ -79,9 +84,10 @@ const Login: React.FC = () => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={loading}
+              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${loading ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
             >
-              Sign in
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
         </form>

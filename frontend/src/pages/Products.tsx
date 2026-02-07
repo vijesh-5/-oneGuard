@@ -1,20 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { Product, ProductCreate } from '../types/product';
-
-// Mock data
-const MOCK_PRODUCTS: Product[] = [
-    { id: 1, name: 'Netflix Standard', base_price: 10.99 },
-    { id: 2, name: 'Spotify Premium', base_price: 9.99 },
-];
+import ProductService from '../services/productService';
 
 const Products: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
     const [newProduct, setNewProduct] = useState<ProductCreate>({ name: '', base_price: 0 });
     const [isFormVisible, setIsFormVisible] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    const fetchProducts = async () => {
+        setLoading(true);
+        try {
+            const data = await ProductService.getAll();
+            setProducts(data);
+        } catch (error) {
+            console.error("Failed to fetch products", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        // Simulate API fetch
-        setProducts(MOCK_PRODUCTS);
+        fetchProducts();
     }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -25,16 +32,16 @@ const Products: React.FC = () => {
         }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Simulate API call
-        const createdProduct: Product = {
-            id: products.length + 1,
-            ...newProduct
-        };
-        setProducts([...products, createdProduct]);
-        setNewProduct({ name: '', base_price: 0 });
-        setIsFormVisible(false);
+        try {
+            await ProductService.create(newProduct);
+            setNewProduct({ name: '', base_price: 0 });
+            setIsFormVisible(false);
+            fetchProducts(); // Refresh list
+        } catch (error) {
+            console.error("Failed to create product", error);
+        }
     };
 
     return (
@@ -88,24 +95,28 @@ const Products: React.FC = () => {
             )}
 
             <div className="bg-white shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Base Price</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {products.map((product) => (
-                            <tr key={product.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.id}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${product.base_price.toFixed(2)}</td>
+                {loading ? (
+                    <div className="p-6 text-center text-gray-500">Loading products...</div>
+                ) : (
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Base Price</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {products.map((product) => (
+                                <tr key={product.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.id}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${product.base_price.toFixed(2)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                )}
             </div>
         </div>
     );
