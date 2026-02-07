@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from backend.app.schemas import LoginRequest, LoginResponse
+from ..schemas import LoginRequest, LoginResponse
 
 router = APIRouter()
 

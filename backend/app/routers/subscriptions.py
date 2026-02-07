@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import date, timedelta
 
-from backend.app.database import get_db
-from backend.app.models import Subscription as DBSubscription, Plan as DBPlan, Invoice as DBInvoice
-from backend.app.schemas import Subscription, SubscriptionCreate, SubscriptionConfirm
+from ..database import get_db
+from ..models import Subscription as DBSubscription, Plan as DBPlan, Invoice as DBInvoice
+from ..schemas import Subscription, SubscriptionCreate, SubscriptionConfirm
 
 router = APIRouter()
 

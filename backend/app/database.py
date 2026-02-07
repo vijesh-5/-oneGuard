@@ -22,5 +22,5 @@ def get_db():
         db.close()
 
 def create_all_tables():
-    import backend.app.models # Import models to ensure they are registered with Base metadata
+    from . import models # Import models to ensure they are registered with Base metadata
     Base.metadata.create_all(bind=engine)

@@ -49,6 +49,11 @@ The following features and infrastructure components have been implemented:
 *   **FastAPI Best Practices:** Utilizes FastAPI's dependency injection system for database sessions and Pydantic for robust data validation and serialization.
 *   **Error Handling:** Standard `HTTPException`s are used for common API error conditions, providing clear status codes and details.
 *   **Environment Variable Management:** Centralized `load_dotenv()` call in `database.py` ensures that the database connection string is loaded correctly and consistently.
+*   **Dependency Management:** `backend/requirements.txt` was populated with specific versions of required packages (`fastapi`, `uvicorn`, `python-dotenv`, `sqlalchemy`, `psycopg2-binary`) and confirmed successful installation within the virtual environment.
+*   **Database Initialization:** Ensured `create_all_tables()` is called on application startup in `backend/app/main.py` for automatic schema creation during development.
+*   **CORS Configuration:** Updated `CORSMiddleware` origins in `backend/app/main.py` to include `http://localhost:5173` to resolve frontend/backend communication issues.
+*   **Module Import Resolution:** Corrected absolute module imports (e.g., `backend.app.routers`) to relative imports (e.g., `from .routers` or `from ..schemas`) across `backend/app/main.py`, `backend/app/routers/*.py`, `backend/app/models.py`, and `backend/app/database.py` to resolve `ModuleNotFoundError` issues and a `SyntaxError`.
+*   **WSL/Windows Host Access:** Identified and provided solution for accessing the backend running in WSL from a Windows host browser by using the WSL instance's IP address and suggesting Windows Firewall configuration.
 
 ## 3. Remaining/Future Tasks
 
