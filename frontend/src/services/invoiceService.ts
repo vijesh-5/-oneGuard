@@ -1,16 +1,20 @@
 import { Invoice } from '../types/invoice';
-// import api from './api';
-
-const MOCK_INVOICES: Invoice[] = [
-    { id: 5001, subscription_id: 101, amount: 10.99, status: 'paid', due_date: '2023-01-01' },
-    { id: 5002, subscription_id: 101, amount: 10.99, status: 'pending', due_date: '2023-02-01' },
-];
+import api from './api';
 
 const InvoiceService = {
     getAll: async (): Promise<Invoice[]> => {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        return [...MOCK_INVOICES];
-        // return (await api.get('/invoices')).data;
+        const response = await api.get('/invoices/');
+        return response.data;
+    },
+
+    getById: async (id: number): Promise<Invoice> => {
+        const response = await api.get(`/invoices/${id}`);
+        return response.data;
+    },
+
+    updateStatus: async (id: number, status: string): Promise<Invoice> => {
+        const response = await api.patch(`/invoices/${id}/status`, { status });
+        return response.data;
     }
 };
 

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import auth, products, plans, subscriptions, taxes, discounts, payments
+from .routers import auth, products, plans, subscriptions, taxes, discounts, payments, invoices
 from .database import create_all_tables # Import create_all_tables
 
 app = FastAPI()
@@ -29,6 +29,7 @@ app.include_router(subscriptions.router, prefix="/subscriptions", tags=["subscri
 app.include_router(taxes.router, prefix="/taxes", tags=["taxes"])
 app.include_router(discounts.router, prefix="/discounts", tags=["discounts"])
 app.include_router(payments.router, prefix="/payments", tags=["payments"])
+app.include_router(invoices.router, prefix="/invoices", tags=["invoices"])
 
 @app.get("/")
 async def root():

@@ -29,7 +29,7 @@ def calculate_next_billing_date(start_date: date, interval: str) -> date:
     else:
         raise ValueError(f"Unknown interval: {interval}")
 
-@router.post("/subscriptions/", response_model=Subscription, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=Subscription, status_code=status.HTTP_201_CREATED)
 def create_subscription(subscription: SubscriptionCreate, db: Session = Depends(get_db)):
     # Calculate totals from subscription lines
     subtotal = 0.0
@@ -86,7 +86,7 @@ def create_subscription(subscription: SubscriptionCreate, db: Session = Depends(
 
     return db_subscription
 
-@router.patch("/subscriptions/{subscription_id}/confirm", response_model=SubscriptionConfirm)
+@router.patch("/{subscription_id}/confirm", response_model=SubscriptionConfirm)
 def confirm_subscription(subscription_id: int, db: Session = Depends(get_db)):
     db_subscription = db.query(DBSubscription).filter(DBSubscription.id == subscription_id).first()
     if not db_subscription:

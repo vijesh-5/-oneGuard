@@ -1,9 +1,9 @@
 # Backend (Python/FastAPI)
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
 backend/.venv/
-backend/__pycache__/
-backend/*.pyc
-backend/*.pyo
-backend/*.pyd
 backend/.Python
 backend/env/
 backend/venv/
@@ -12,6 +12,10 @@ backend/.pytest_cache/
 backend/.coverage
 backend/.mypy_cache/
 .vscode/
+
+# Windows/WSL noise
+*.Identifier
+
 
 # Environment variables
 .env

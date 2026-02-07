@@ -7,7 +7,16 @@ import ProductService from '../services/productService';
 const Plans: React.FC = () => {
     const [plans, setPlans] = useState<Plan[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
-    const [newPlan, setNewPlan] = useState<PlanCreate>({ product_id: 0, name: '', interval: 'monthly', price: 0 });
+    const [newPlan, setNewPlan] = useState<PlanCreate>({ 
+        product_id: 0, 
+        name: '', 
+        billing_period: 'monthly', 
+        price: 0,
+        min_quantity: 1,
+        auto_close: false,
+        pausable: false,
+        renewable: true
+    });
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [loading, setLoading] = useState(true);
 
@@ -35,10 +44,18 @@ const Plans: React.FC = () => {
     }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
+        const { name, value, type } = e.target;
+        
+        let processedValue: any = value;
+        if (type === 'number') {
+            processedValue = value === '' ? 0 : parseFloat(value);
+        } else if (type === 'checkbox') {
+            processedValue = (e.target as HTMLInputElement).checked;
+        }
+
         setNewPlan(prev => ({
             ...prev,
-            [name]: name === 'price' || name === 'product_id' ? parseFloat(value) : value
+            [name]: processedValue
         }));
     };
 
@@ -46,7 +63,16 @@ const Plans: React.FC = () => {
         e.preventDefault();
         try {
             await PlanService.create(newPlan);
-            setNewPlan({ product_id: products[0]?.id || 0, name: '', interval: 'monthly', price: 0 });
+            setNewPlan({ 
+                product_id: products[0]?.id || 0, 
+                name: '', 
+                billing_period: 'monthly', 
+                price: 0,
+                min_quantity: 1,
+                auto_close: false,
+                pausable: false,
+                renewable: true
+            });
             setIsFormVisible(false);
             fetchData();
         } catch (error) {
@@ -60,27 +86,30 @@ const Plans: React.FC = () => {
 
     return (
         <div className="container mx-auto px-4 py-8">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Billing Plans</h2>
+            <div className="flex justify-between items-center mb-8">
+                <div>
+                    <h2 className="text-3xl font-extrabold text-gray-900">Billing Plans</h2>
+                    <p className="mt-1 text-sm text-gray-500">Define recurring billing rules for your products.</p>
+                </div>
                 <button 
                     onClick={() => setIsFormVisible(!isFormVisible)}
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-bold rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
                 >
-                    {isFormVisible ? 'Cancel' : 'Add Plan'}
+                    {isFormVisible ? 'Cancel' : 'Create Plan'}
                 </button>
             </div>
 
             {isFormVisible && (
-                <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-                    <h3 className="text-lg font-semibold mb-4">Create New Plan</h3>
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="bg-white p-8 rounded-2xl shadow-lg mb-10 border border-gray-100">
+                    <h3 className="text-lg font-bold text-gray-800 mb-6">New Billing Configuration</h3>
+                    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Product</label>
+                            <label className="block text-sm font-semibold text-gray-700">Associated Product</label>
                             <select
                                 name="product_id"
                                 value={newPlan.product_id}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2.5"
                             >
                                 {products.map(p => (
                                     <option key={p.id} value={p.id}>{p.name}</option>
@@ -88,73 +117,102 @@ const Plans: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Plan Name</label>
+                            <label className="block text-sm font-semibold text-gray-700">Plan Display Name</label>
                             <input
                                 type="text"
                                 name="name"
                                 required
-                                placeholder="e.g. Monthly Basic"
+                                placeholder="e.g. Pro Monthly"
                                 value={newPlan.name}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2.5"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Interval</label>
+                            <label className="block text-sm font-semibold text-gray-700">Billing Period</label>
                             <select
-                                name="interval"
-                                value={newPlan.interval}
+                                name="billing_period"
+                                value={newPlan.billing_period}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2.5"
                             >
                                 <option value="monthly">Monthly</option>
                                 <option value="yearly">Yearly</option>
                                 <option value="quarterly">Quarterly</option>
+                                <option value="weekly">Weekly</option>
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Price</label>
+                            <label className="block text-sm font-semibold text-gray-700">Recurring Price (USD)</label>
                             <input
                                 type="number"
                                 name="price"
                                 required
                                 min="0"
                                 step="0.01"
-                                value={newPlan.price}
+                                value={newPlan.price || ''}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2.5"
                             />
                         </div>
-                        <button 
-                            type="submit"
-                            className="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-                        >
-                            Save Plan
-                        </button>
+
+                        <div className="col-span-2 grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl">
+                            <label className="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="renewable" checked={newPlan.renewable} onChange={handleInputChange} className="h-4 w-4 text-indigo-600 rounded" />
+                                <span className="text-sm font-medium text-gray-700">Auto-Renew</span>
+                            </label>
+                            <label className="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="pausable" checked={newPlan.pausable} onChange={handleInputChange} className="h-4 w-4 text-indigo-600 rounded" />
+                                <span className="text-sm font-medium text-gray-700">Pausable</span>
+                            </label>
+                            <label className="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="auto_close" checked={newPlan.auto_close} onChange={handleInputChange} className="h-4 w-4 text-indigo-600 rounded" />
+                                <span className="text-sm font-medium text-gray-700">Auto-Close</span>
+                            </label>
+                        </div>
+
+                        <div className="col-span-2">
+                            <button 
+                                type="submit"
+                                className="w-full inline-flex justify-center py-3 px-4 border border-transparent shadow-sm text-sm font-bold rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors"
+                            >
+                                Activate Billing Plan
+                            </button>
+                        </div>
                     </form>
                 </div>
             )}
 
-            <div className="bg-white shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+            <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
                 {loading ? (
-                     <div className="p-6 text-center text-gray-500">Loading plans...</div>
+                     <div className="p-12 text-center text-gray-500">Syncing plans...</div>
+                ) : plans.length === 0 ? (
+                    <div className="p-12 text-center text-gray-500">No plans configured yet.</div>
                 ) : (
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <table className="min-w-full divide-y divide-gray-100">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interval</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Target Product</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Plan Name</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Period</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Price</th>
+                                <th className="px-6 py-4 text-right text-xs font-bold text-gray-400 uppercase tracking-widest">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-white divide-y divide-gray-50">
                             {plans.map((plan) => (
-                                <tr key={plan.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{getProductName(plan.product_id)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{plan.interval}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${plan.price.toFixed(2)}</td>
+                                <tr key={plan.id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-900 font-bold">{getProductName(plan.product_id)}</td>
+                                    <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-600 font-medium">{plan.name}</td>
+                                    <td className="px-6 py-5 whitespace-nowrap">
+                                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700">
+                                            {plan.billing_period}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-gray-900">${plan.price.toFixed(2)}</td>
+                                    <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                                        <button className="text-indigo-600 hover:text-indigo-900 font-bold">Configure</button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>

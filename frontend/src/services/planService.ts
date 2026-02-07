@@ -1,25 +1,34 @@
 import { Plan, PlanCreate } from '../types/plan';
-// import api from './api';
-
-const MOCK_PLANS: Plan[] = [
-    { id: 1, product_id: 1, name: 'Standard Monthly', interval: 'monthly', price: 10.99 },
-    { id: 2, product_id: 1, name: 'Standard Yearly', interval: 'yearly', price: 120.00 },
-    { id: 3, product_id: 2, name: 'Premium Student', interval: 'monthly', price: 4.99 },
-];
+import api from './api';
 
 const PlanService = {
     getAll: async (): Promise<Plan[]> => {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        return [...MOCK_PLANS];
-        // return (await api.get('/plans')).data;
+        const response = await api.get('/plans/');
+        return response.data;
+    },
+
+    getById: async (id: number): Promise<Plan> => {
+        const response = await api.get(`/plans/${id}`);
+        return response.data;
+    },
+
+    getByProductId: async (productId: number): Promise<Plan[]> => {
+        const response = await api.get(`/plans/product/${productId}`);
+        return response.data;
     },
 
     create: async (data: PlanCreate): Promise<Plan> => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const newPlan = { id: Date.now(), ...data };
-        MOCK_PLANS.push(newPlan);
-        return newPlan;
-        // return (await api.post('/plans', data)).data;
+        const response = await api.post('/plans/', data);
+        return response.data;
+    },
+
+    update: async (id: number, data: Partial<PlanCreate>): Promise<Plan> => {
+        const response = await api.patch(`/plans/${id}`, data);
+        return response.data;
+    },
+
+    delete: async (id: number): Promise<void> => {
+        await api.delete(`/plans/${id}`);
     }
 };
 
