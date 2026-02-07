@@ -10,7 +10,13 @@ router = APIRouter()
 
 @router.post("/products/", response_model=Product, status_code=status.HTTP_201_CREATED)
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
-    db_product = DBProduct(name=product.name, base_price=product.base_price)
+    db_product = DBProduct(
+        name=product.name,
+        base_price=product.base_price,
+        type=product.type,
+        description=product.description,
+        is_active=product.is_active
+    )
     db.add(db_product)
     db.commit()
     db.refresh(db_product)

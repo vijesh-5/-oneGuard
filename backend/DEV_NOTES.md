@@ -42,6 +42,51 @@ The following features and infrastructure components have been implemented:
     *   Created and configured `/.gitignore` in the project root to exclude common development artifacts, virtual environments, build directories, and sensitive environment files.
 *   **.env File:**
     *   Created `backend/.env` to store the `DATABASE_URL` for flexible database configuration.
+*   **Product Model Upgrade:**
+    *   `Product` model (`backend/app/models.py`) upgraded with `type`, `description`, `is_active`, and `created_at` fields.
+    *   `ProductBase`, `ProductCreate`, `Product` Pydantic schemas (`backend/app/schemas.py`) updated.
+    *   `POST /products` endpoint (`backend/app/routers/products.py`) modified to handle new fields.
+*   **Plan Model Upgrade:**
+    *   `Plan` model (`backend/app/models.py`) upgraded with `billing_period` (replacing `interval`), `min_quantity`, `auto_close`, `pausable`, `renewable`, `start_date`, and `end_date` fields.
+    *   `PlanBase`, `PlanCreate`, `Plan` Pydantic schemas (`backend/app/schemas.py`) updated.
+    *   `POST /plans` endpoint (`backend/app/routers/plans.py`) modified to handle new fields.
+*   **Tax Management Module (NEW):**
+    *   New `Tax` model (`backend/app/models.py`) with `name`, `percent`, `is_active`.
+    *   `TaxBase`, `TaxCreate`, `Tax` Pydantic schemas (`backend/app/schemas.py`) added.
+    *   New `backend/app/routers/taxes.py` created for CRUD operations (`GET /taxes`, `POST /taxes`, `PATCH /taxes/{id}`, `DELETE /taxes/{id}`).
+    *   `taxes` router included in `backend/app/main.py`.
+*   **Discount Management Module (NEW):**
+    *   New `Discount` model (`backend/app/models.py`) with `name`, `type`, `value`, `start_date`, `end_date`, `usage_limit`.
+    *   `DiscountBase`, `DiscountCreate`, `Discount` Pydantic schemas (`backend/app/schemas.py`) added.
+    *   New `backend/app/routers/discounts.py` created for CRUD operations (`GET /discounts`, `POST /discounts`, `PATCH /discounts/{id}`, `DELETE /discounts/{id}`).
+    *   `discounts` router included in `backend/app/main.py`.
+*   **Subscription Model Major Upgrade:**
+    *   `Subscription` model (`backend/app/models.py`) upgraded with `subscription_number`, `customer_id`, `end_date`, `payment_terms`, `subtotal`, `tax_total`, `discount_total`, `grand_total`, `created_at`, `confirmed_at`, `closed_at`.
+    *   `SubscriptionBase`, `SubscriptionCreate`, `Subscription`, `SubscriptionConfirm` Pydantic schemas (`backend/app/schemas.py`) updated.
+*   **Subscription Lines Module (NEW):**
+    *   New `SubscriptionLine` model (`backend/app/models.py`) for snapshotting product details (`product_name_snapshot`, `unit_price_snapshot`) within a subscription, including `quantity`, `tax_percent`, `discount_percent`, `line_total`.
+    *   `SubscriptionLineBase`, `SubscriptionLineCreate`, `SubscriptionLine` Pydantic schemas (`backend/app/schemas.py`) added.
+    *   `Subscription` schema updated to include `subscription_lines: List["SubscriptionLine"]`.
+    *   `POST /subscriptions` endpoint (`backend/app/routers/subscriptions.py`) modified to accept `SubscriptionLineCreate` objects, calculate line totals, and persist `DBSubscriptionLine`s.
+*   **Invoice Model Professional Standard:**
+    *   `Invoice` model (`backend/app/models.py`) upgraded with `invoice_number`, `customer_id`, `issue_date` (renamed from `invoice_date`), expanded `status` states, `subtotal`, `tax_total`, `discount_total`, `grand_total`.
+    *   `InvoiceBase`, `InvoiceCreate`, `Invoice` Pydantic schemas (`backend/app/schemas.py`) updated.
+*   **Invoice Lines Module (NEW):**
+    *   New `InvoiceLine` model (`backend/app/models.py`) for immutable invoice details (`product_name`, `unit_price`, `quantity`, `tax_percent`, `discount_percent`, `line_total`).
+    *   `InvoiceLineBase`, `InvoiceLineCreate`, `InvoiceLine` Pydantic schemas (`backend/app/schemas.py`) added.
+    *   `Invoice` schema updated to include `invoice_lines: List["InvoiceLine"]`.
+*   **Payment Module (NEW):**
+    *   New `Payment` model (`backend/app/models.py`) with `invoice_id`, `amount`, `method`, `reference_id`, `status`, `payment_date`.
+    *   `PaymentBase`, `PaymentCreate`, `Payment` Pydantic schemas (`backend/app/schemas.py`) added.
+    *   New `backend/app/routers/payments.py` created for CRUD and `simulate` operation (`POST /payments/simulate`).
+    *   `payments` router included in `backend/app/main.py`.
+    *   `Invoice` schema updated to include `payments: List["Payment"]`.
+*   **Confirmation Engine Implementation:**
+    *   `PATCH /subscriptions/{id}/confirm` endpoint (`backend/app/routers/subscriptions.py`) fully implemented to:
+        *   Re-calculate `subtotal`, `tax_total`, `discount_total`, `grand_total` based on `SubscriptionLine`s.
+        *   Generate a unique `invoice_number`.
+        *   Create `DBInvoice` with all financial totals.
+        *   Create `DBInvoiceLine`s from `DBSubscriptionLine`s, ensuring snapshotting.
 
 ## 2. Improvements/Refinements
 
