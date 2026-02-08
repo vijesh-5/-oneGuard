@@ -4,29 +4,31 @@ from typing import List, Optional
 from datetime import date
 
 from ..database import get_db
-from ..models import Discount as DBDiscount
+from ..models import Discount as DBDiscount, User
 from ..schemas import Discount, DiscountCreate
+from ..dependencies import get_current_user
 
 router = APIRouter()
 
-@router.post("/discounts/", response_model=Discount, status_code=status.HTTP_201_CREATED)
-def create_discount(discount: DiscountCreate, db: Session = Depends(get_db)):
+@router.post("/", response_model=Discount, status_code=status.HTTP_201_CREATED)
+def create_discount(discount: DiscountCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     db_discount = DBDiscount(
         name=discount.name,
         type=discount.type,
         value=discount.value,
         start_date=discount.start_date,
         end_date=discount.end_date,
-        usage_limit=discount.usage_limit
+        usage_limit=discount.usage_limit,
+        user_id=current_user.id
     )
     db.add(db_discount)
     db.commit()
     db.refresh(db_discount)
     return db_discount
 
-@router.get("/discounts/", response_model=List[Discount])
-def read_discounts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    discounts = db.query(DBDiscount).offset(skip).limit(limit).all()
+@router.get("/", response_model=List[Discount])
+def read_discounts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    discounts = db.query(DBDiscount).filter(DBDiscount.user_id == current_user.id).offset(skip).limit(limit).all()
     return discounts
 
 @router.get("/discounts/{discount_id}", response_model=Discount)

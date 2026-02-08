@@ -7,6 +7,7 @@ class Product(Base):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id")) # Scoped to User
     name = Column(String, index=True)
     base_price = Column(Float)
     # New fields
@@ -21,6 +22,7 @@ class Plan(Base):
     __tablename__ = "plans"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id")) # Scoped to User
     product_id = Column(Integer, ForeignKey("products.id"))
     name = Column(String, index=True) # e.g., "Monthly Basic"
     billing_period = Column(String) # daily / weekly / monthly / yearly
@@ -37,8 +39,9 @@ class Plan(Base):
 class Subscription(Base):
     __tablename__ = "subscriptions"
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id")) # Scoped to User
     subscription_number = Column(String, unique=True, index=True) # NEW
-    customer_id = Column(Integer) # NEW (assuming future Customer model)
+    customer_id = Column(Integer, ForeignKey("customers.id")) # Linked to Customer
     plan_id = Column(Integer, ForeignKey("plans.id"))
 
     status = Column(String, default="draft") # "draft", "quotation", "confirmed", "active", "closed" (expanded states)
@@ -58,6 +61,7 @@ class Subscription(Base):
     closed_at = Column(DateTime, nullable=True) # NEW
 
     plan = relationship("Plan")
+    customer = relationship("Customer", back_populates="subscriptions")
     invoices = relationship("Invoice", back_populates="subscription") # Add relationship to invoices
     subscription_lines = relationship("SubscriptionLine", back_populates="subscription") # NEW relationship
 
@@ -81,9 +85,10 @@ class SubscriptionLine(Base):
 class Invoice(Base):
     __tablename__ = "invoices"
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id")) # Scoped to User
     invoice_number = Column(String, unique=True, index=True) # NEW
     subscription_id = Column(Integer, ForeignKey("subscriptions.id"))
-    customer_id = Column(Integer) # NEW (assuming future Customer model)
+    customer_id = Column(Integer, ForeignKey("customers.id")) # Linked to Customer
 
     issue_date = Column(Date) # Renamed from invoice_date
     due_date = Column(Date)
@@ -96,6 +101,7 @@ class Invoice(Base):
     grand_total = Column(Float, default=0.0) # NEW
 
     subscription = relationship("Subscription", back_populates="invoices")
+    customer = relationship("Customer", back_populates="invoices")
     invoice_lines = relationship("InvoiceLine", back_populates="invoice") # NEW relationship
     payments = relationship("Payment", back_populates="invoice") # NEW relationship
 
@@ -117,6 +123,7 @@ class Tax(Base):
     __tablename__ = "taxes"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id")) # Scoped to User
     name = Column(String, unique=True, index=True)
     percent = Column(Float)
     is_active = Column(Boolean, default=True)
@@ -125,6 +132,7 @@ class Discount(Base):
     __tablename__ = "discounts"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id")) # Scoped to User
     name = Column(String, unique=True, index=True)
     type = Column(String) # e.g., "percentage", "fixed_amount"
     value = Column(Float)
@@ -136,6 +144,9 @@ class Payment(Base):
     __tablename__ = "payments"
 
     id = Column(Integer, primary_key=True, index=True)
+    # Payment is linked to Invoice, which is linked to User. 
+    # But adding user_id here directly might be redundant unless we want faster lookups.
+    # For isolation, Invoice.user_id check is enough.
     invoice_id = Column(Integer, ForeignKey("invoices.id"))
     amount = Column(Float)
     method = Column(String) # e.g., "cash", "card", "upi", "netbanking"
@@ -144,4 +155,36 @@ class Payment(Base):
     payment_date = Column(DateTime, default=datetime.utcnow)
 
     invoice = relationship("Invoice", back_populates="payments")
+
+class Customer(Base):
+    __tablename__ = "customers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id")) # Scoped to User
+    name = Column(String, index=True)
+    email = Column(String, unique=True, index=True)
+    phone = Column(String, nullable=True)
+    company_name = Column(String, nullable=True)
+    address = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Link to a registered user account for Client Portal access
+    portal_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    # Relationships
+    # Relationships
+    portal_user = relationship("User", foreign_keys=[portal_user_id], backref="customer_profile")
+    owner = relationship("User", foreign_keys=[user_id], backref="customers")
+    subscriptions = relationship("Subscription", back_populates="customer")
+    invoices = relationship("Invoice", back_populates="customer")
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    is_active = Column(Boolean, default=True)
+    mode = Column(String, default="business") # "business" or "personal"
 

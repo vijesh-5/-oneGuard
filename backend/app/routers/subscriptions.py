@@ -1,3 +1,5 @@
+
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -5,8 +7,9 @@ from datetime import date, timedelta, datetime
 import random # For generating invoice_number for now
 
 from ..database import get_db
-from ..models import Subscription as DBSubscription, Plan as DBPlan, Invoice as DBInvoice, SubscriptionLine as DBSubscriptionLine, InvoiceLine as DBInvoiceLine, Product as DBProduct
+from ..models import Subscription as DBSubscription, Plan as DBPlan, Invoice as DBInvoice, SubscriptionLine as DBSubscriptionLine, InvoiceLine as DBInvoiceLine, Product as DBProduct, User
 from ..schemas import Subscription, SubscriptionCreate, SubscriptionConfirm, SubscriptionLineCreate, InvoiceCreate, InvoiceLineCreate, Invoice
+from ..dependencies import get_current_user
 
 router = APIRouter()
 
@@ -30,7 +33,12 @@ def calculate_next_billing_date(start_date: date, interval: str) -> date:
         raise ValueError(f"Unknown interval: {interval}")
 
 @router.post("/", response_model=Subscription, status_code=status.HTTP_201_CREATED)
-def create_subscription(subscription: SubscriptionCreate, db: Session = Depends(get_db)):
+def create_subscription(subscription: SubscriptionCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Verify plan belongs to user
+    plan = db.query(DBPlan).filter(DBPlan.id == subscription.plan_id, DBPlan.user_id == current_user.id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
     # Calculate totals from subscription lines
     subtotal = 0.0
     tax_total = 0.0
@@ -61,7 +69,8 @@ def create_subscription(subscription: SubscriptionCreate, db: Session = Depends(
         tax_total=tax_total,
         discount_total=discount_total,
         grand_total=grand_total,
-        created_at=datetime.utcnow()
+        created_at=datetime.utcnow(),
+        user_id=current_user.id
     )
     db.add(db_subscription)
     db.commit()
@@ -86,9 +95,21 @@ def create_subscription(subscription: SubscriptionCreate, db: Session = Depends(
 
     return db_subscription
 
+@router.get("/", response_model=List[Subscription])
+def read_subscriptions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    subscriptions = db.query(DBSubscription).filter(DBSubscription.user_id == current_user.id).offset(skip).limit(limit).all()
+    return subscriptions
+
+@router.get("/{subscription_id}", response_model=Subscription)
+def read_subscription(subscription_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_subscription = db.query(DBSubscription).filter(DBSubscription.id == subscription_id, DBSubscription.user_id == current_user.id).first()
+    if not db_subscription:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found")
+    return db_subscription
+
 @router.patch("/{subscription_id}/confirm", response_model=SubscriptionConfirm)
-def confirm_subscription(subscription_id: int, db: Session = Depends(get_db)):
-    db_subscription = db.query(DBSubscription).filter(DBSubscription.id == subscription_id).first()
+def confirm_subscription(subscription_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_subscription = db.query(DBSubscription).filter(DBSubscription.id == subscription_id, DBSubscription.user_id == current_user.id).first()
     if not db_subscription:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found")
 
@@ -136,12 +157,13 @@ def confirm_subscription(subscription_id: int, db: Session = Depends(get_db)):
     # Use plan's billing_period from the current plan
     db_subscription.next_billing_date = calculate_next_billing_date(db_subscription.start_date, plan.billing_period)
     
-    db.commit()
-    db.refresh(db_subscription)
+    # NOTE: No commit here, we want to do everything in one transaction
 
     # Generate Invoice (Confirmation Engine Step 3)
-    # Generate a unique invoice number (simple random for now, should be sequential in production)
-    invoice_number = f"INV-{random.randint(100000, 999999)}-{db_subscription.id}"
+    # Improved Invoice Numbering: INV-YYYYMMDD-{SubscriptionID}-{RandomSuffix}
+    today_str = date.today().strftime("%Y%m%d")
+    random_suffix = random.randint(100, 999)
+    invoice_number = f"INV-{today_str}-{db_subscription.id}-{random_suffix}"
     
     new_invoice = DBInvoice(
         invoice_number=invoice_number,
@@ -153,12 +175,12 @@ def confirm_subscription(subscription_id: int, db: Session = Depends(get_db)):
         subtotal=db_subscription.subtotal,
         tax_total=db_subscription.tax_total,
         discount_total=db_subscription.discount_total,
-        grand_total=db_subscription.grand_total
+        grand_total=db_subscription.grand_total,
+        user_id=current_user.id
     )
     db.add(new_invoice)
-    db.commit()
-    db.refresh(new_invoice)
-
+    db.flush() # Flush to generate new_invoice.id without committing transaction
+    
     # Create Invoice Lines from Subscription Lines
     for sub_line in db_subscription.subscription_lines:
         db_invoice_line = DBInvoiceLine(
@@ -172,8 +194,16 @@ def confirm_subscription(subscription_id: int, db: Session = Depends(get_db)):
         )
         db.add(db_invoice_line)
     
-    db.commit()
-    db.refresh(new_invoice) # Refresh invoice to load new lines
+    # Validate final state before commit
+    # e.g., check if grand_total matches
+    
+    try:
+        db.commit()
+        db.refresh(db_subscription)
+        # db.refresh(new_invoice) # Optional if we needed to return the invoice
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Transaction failed: {str(e)}")
 
     return SubscriptionConfirm(
         status=db_subscription.status,
@@ -184,3 +214,106 @@ def confirm_subscription(subscription_id: int, db: Session = Depends(get_db)):
         discount_total=db_subscription.discount_total,
         grand_total=db_subscription.grand_total
     )
+
+@router.post("/process-renewals", status_code=status.HTTP_200_OK)
+def process_renewals(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Check for active subscriptions that are due for renewal (next_billing_date <= today).
+    Generate new invoices for them and advance the billing date.
+    Scoped to current_user.
+    """
+    today = date.today()
+    
+    # 1. Find active subscriptions due for renewal belonging to current user
+    due_subscriptions = db.query(DBSubscription).filter(
+        DBSubscription.status == "active",
+        DBSubscription.next_billing_date <= today,
+        DBSubscription.user_id == current_user.id
+    ).all()
+    
+    processed_count = 0
+    errors = []
+
+    for sub in due_subscriptions:
+        try:
+            # Check if subscription has an end_date and if we passed it
+            if sub.end_date and sub.next_billing_date > sub.end_date:
+                sub.status = "closed"
+                sub.closed_at = datetime.utcnow()
+                db.add(sub)
+                continue
+
+            # Generate Invoice for the next period
+            today_str = date.today().strftime("%Y%m%d")
+            random_suffix = random.randint(100, 999)
+            invoice_number = f"INV-{today_str}-{sub.id}-{random_suffix}"
+            
+            new_invoice = DBInvoice(
+                invoice_number=invoice_number,
+                subscription_id=sub.id,
+                customer_id=sub.customer_id,
+                issue_date=today,
+                due_date=today + timedelta(days=30), # Default 30 days due
+                status="pending",
+                subtotal=sub.subtotal,
+                tax_total=sub.tax_total,
+                discount_total=sub.discount_total,
+                grand_total=sub.grand_total,
+                user_id=current_user.id
+            )
+            db.add(new_invoice)
+            db.flush() 
+
+            # Create Invoice Lines (Clone from Subscription Lines)
+            # Ensure lines are loaded
+            if not sub.subscription_lines:
+                 db.refresh(sub, attribute_names=['subscription_lines'])
+
+            for sub_line in sub.subscription_lines:
+                db_invoice_line = DBInvoiceLine(
+                    invoice_id=new_invoice.id,
+                    product_name=sub_line.product_name_snapshot,
+                    unit_price=sub_line.unit_price_snapshot,
+                    quantity=sub_line.quantity,
+                    tax_percent=sub_line.tax_percent,
+                    discount_percent=sub_line.discount_percent,
+                    line_total=sub_line.line_total
+                )
+                db.add(db_invoice_line)
+            
+            # Advance next_billing_date
+            # We need the plan to know the interval
+            if not sub.plan:
+                 db.refresh(sub, attribute_names=['plan'])
+            
+            sub.next_billing_date = calculate_next_billing_date(sub.next_billing_date, sub.plan.billing_period)
+            
+            db.commit() # Commit per subscription to isolate failures
+            processed_count += 1
+            
+        except Exception as e:
+            db.rollback()
+            errors.append(f"Failed to renew Subscription {sub.id}: {str(e)}")
+
+    return {
+        "processed_count": processed_count,
+        "errors": errors
+    }
+
+@router.patch("/{subscription_id}/cancel", response_model=Subscription)
+def cancel_subscription(subscription_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_subscription = db.query(DBSubscription).filter(DBSubscription.id == subscription_id, DBSubscription.user_id == current_user.id).first()
+    if not db_subscription:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found")
+
+    if db_subscription.status not in ["active", "confirmed"]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Cannot cancel subscription in status '{db_subscription.status}'")
+
+    db_subscription.status = "cancelled"
+    # Optionally set end_date to today effectively validating the cancellation immediately
+    db_subscription.closed_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(db_subscription)
+    
+    return db_subscription

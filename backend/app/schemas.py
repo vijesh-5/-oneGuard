@@ -72,6 +72,7 @@ class Subscription(SubscriptionBase):
     confirmed_at: Optional[datetime] = None
     closed_at: Optional[datetime] = None
     subscription_lines: List["SubscriptionLine"] = [] # Add subscription lines
+    invoices: List["Invoice"] = [] # Add invoices to response
 
     class Config:
         orm_mode = True
@@ -146,6 +147,47 @@ class InvoiceLine(InvoiceLineBase):
     class Config:
         orm_mode = True
 
+class PaymentBase(BaseModel):
+    invoice_id: int
+    amount: float
+    method: str
+    reference_id: Optional[str] = None
+    status: str = "pending"
+    payment_date: Optional[datetime] = None
+
+class PaymentCreate(PaymentBase):
+    pass
+
+class Payment(PaymentBase):
+    id: int
+    invoice_id: int # Linked to Invoice
+
+    class Config:
+        orm_mode = True
+
+# --- Auth Schemas ---
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+class UserBase(BaseModel):
+    email: str
+
+class UserCreate(UserBase):
+    password: str
+    mode: str = "business"
+
+class User(UserBase):
+    id: int
+    is_active: bool
+    mode: str
+
+    class Config:
+        orm_mode = True
+
 class TaxBase(BaseModel):
     name: str
     percent: float
@@ -183,7 +225,7 @@ class PaymentBase(BaseModel):
     method: str
     reference_id: Optional[str] = None
     status: str = "pending"
-    payment_date: datetime
+    payment_date: Optional[datetime] = None
 
 class PaymentCreate(PaymentBase):
     pass
@@ -194,5 +236,28 @@ class Payment(PaymentBase):
     class Config:
         orm_mode = True
 
+    class Config:
+        orm_mode = True
+
+class CustomerBase(BaseModel):
+    name: str
+    email: str
+    phone: Optional[str] = None
+    company_name: Optional[str] = None
+    address: Optional[str] = None
+    portal_user_id: Optional[int] = None
+
+class CustomerCreate(CustomerBase):
+    pass
+
+class Customer(CustomerBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
 
 
+
+Subscription.update_forward_refs()

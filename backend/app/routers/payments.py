@@ -9,9 +9,10 @@ from ..schemas import Payment, PaymentCreate, PaymentBase # PaymentBase is used 
 
 router = APIRouter()
 
-@router.post("/payments/", response_model=Payment, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=Payment, status_code=status.HTTP_201_CREATED)
 def create_payment(payment: PaymentCreate, db: Session = Depends(get_db)):
     db_invoice = db.query(DBInvoice).filter(DBInvoice.id == payment.invoice_id).first()
+    # print(f"DEBUG: Looking for Invoice ID {payment.invoice_id}") # corrected variable name if I were to keep it
     if not db_invoice:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found")
 
@@ -28,12 +29,12 @@ def create_payment(payment: PaymentCreate, db: Session = Depends(get_db)):
     db.refresh(db_payment)
     return db_payment
 
-@router.get("/payments/", response_model=List[Payment])
+@router.get("/", response_model=List[Payment])
 def read_payments(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     payments = db.query(DBPayment).offset(skip).limit(limit).all()
     return payments
 
-@router.get("/payments/{payment_id}", response_model=Payment)
+@router.get("/{payment_id}", response_model=Payment)
 def read_payment(payment_id: int, db: Session = Depends(get_db)):
     payment = db.query(DBPayment).filter(DBPayment.id == payment_id).first()
     if payment is None:
@@ -41,7 +42,7 @@ def read_payment(payment_id: int, db: Session = Depends(get_db)):
     return payment
 
 # Simulation endpoint as per guide
-@router.post("/payments/simulate", response_model=Payment, status_code=status.HTTP_201_CREATED)
+@router.post("/simulate", response_model=Payment, status_code=status.HTTP_201_CREATED)
 def simulate_payment(payment_details: PaymentBase, db: Session = Depends(get_db)):
     # This is a simplified simulation. In a real scenario, this would involve
     # calling an external payment gateway and handling its response.
@@ -49,6 +50,7 @@ def simulate_payment(payment_details: PaymentBase, db: Session = Depends(get_db)
     # and link it to an existing invoice.
 
     db_invoice = db.query(DBInvoice).filter(DBInvoice.id == payment_details.invoice_id).first()
+    # print(f"DEBUG: Looking for Invoice ID {payment_details.invoice_id}")
     if not db_invoice:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found")
 
@@ -61,16 +63,29 @@ def simulate_payment(payment_details: PaymentBase, db: Session = Depends(get_db)
         payment_date=datetime.utcnow()
     )
     db.add(db_payment)
+    # Don't commit yet, we might update invoice
+    
+    # Update Invoice Status Logic
+    # Calculate total paid including this new payment
+    # Existing payments
+    total_paid = 0.0
+    for p in db_invoice.payments:
+        if p.status == "success": # Only count successful payments
+            total_paid += p.amount
+    
+    # Add current payment (since it is simulated success)
+    total_paid += payment_details.amount
+
+    if total_paid >= db_invoice.grand_total:
+        db_invoice.status = "paid"
+        db.add(db_invoice)
+    
     db.commit()
     db.refresh(db_payment)
 
-    # Optional: Update invoice status to 'paid' if amount matches grand_total, etc.
-    # This logic would be part of a more robust payment processing flow.
-    # For now, just create the payment.
-
     return db_payment
 
-@router.patch("/payments/{payment_id}", response_model=Payment)
+@router.patch("/{payment_id}", response_model=Payment)
 def update_payment(payment_id: int, payment_update: PaymentCreate, db: Session = Depends(get_db)):
     db_payment = db.query(DBPayment).filter(DBPayment.id == payment_id).first()
     if db_payment is None:
@@ -84,7 +99,7 @@ def update_payment(payment_id: int, payment_update: PaymentCreate, db: Session =
     db.refresh(db_payment)
     return db_payment
 
-@router.delete("/payments/{payment_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{payment_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_payment(payment_id: int, db: Session = Depends(get_db)):
     db_payment = db.query(DBPayment).filter(DBPayment.id == payment_id).first()
     if db_payment is None:

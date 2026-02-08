@@ -27,6 +27,10 @@ const SubscriptionService = {
         return response.data;
     },
 
+    cancel: async (id: number): Promise<void> => {
+        await api.patch(`/subscriptions/${id}/cancel`);
+    },
+
     delete: async (id: number): Promise<void> => {
         await api.delete(`/subscriptions/${id}`);
     }

@@ -3,22 +3,28 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from ..database import get_db
-from ..models import Tax as DBTax
+from ..models import Tax as DBTax, User
 from ..schemas import Tax, TaxCreate
+from ..dependencies import get_current_user
 
 router = APIRouter()
 
-@router.post("/taxes/", response_model=Tax, status_code=status.HTTP_201_CREATED)
-def create_tax(tax: TaxCreate, db: Session = Depends(get_db)):
-    db_tax = DBTax(name=tax.name, percent=tax.percent, is_active=tax.is_active)
+@router.post("/", response_model=Tax, status_code=status.HTTP_201_CREATED)
+def create_tax(tax: TaxCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_tax = DBTax(
+        name=tax.name,
+        percent=tax.percent,
+        is_active=tax.is_active,
+        user_id=current_user.id
+    )
     db.add(db_tax)
     db.commit()
     db.refresh(db_tax)
     return db_tax
 
-@router.get("/taxes/", response_model=List[Tax])
-def read_taxes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    taxes = db.query(DBTax).offset(skip).limit(limit).all()
+@router.get("/", response_model=List[Tax])
+def read_taxes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    taxes = db.query(DBTax).filter(DBTax.user_id == current_user.id).offset(skip).limit(limit).all()
     return taxes
 
 @router.get("/taxes/{tax_id}", response_model=Tax)

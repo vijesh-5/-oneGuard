@@ -1,29 +1,36 @@
-import { LoginRequest, Token } from '../types/auth';
-// import api from './api'; // We will uncomment this when the backend is ready
-
-const MOCK_TOKEN: Token = {
-    access_token: "fake-jwt-token-123",
-    token_type: "bearer"
-};
+import { LoginRequest, RegisterRequest, Token, User } from '../types/auth'; // Ensure types
+import api from './api';
 
 const AuthService = {
     login: async (credentials: LoginRequest): Promise<Token> => {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Mock Validation
-        if (credentials.username && credentials.password) {
-            return MOCK_TOKEN;
-        }
-        throw new Error("Invalid credentials");
+        // Use URLSearchParams for OAuth2PasswordRequestForm
+        const formData = new URLSearchParams();
+        formData.append('username', credentials.username);
+        formData.append('password', credentials.password);
 
-        // REAL IMPLEMENTATION (Future):
-        // const response = await api.post<Token>('/login', credentials);
-        // return response.data;
+        const response = await api.post<Token>('/auth/login', formData, {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+        return response.data;
+    },
+
+    register: async (data: RegisterRequest): Promise<User> => {
+        const response = await api.post<User>('/auth/register', data);
+        return response.data;
     },
 
     logout: () => {
         localStorage.removeItem('token');
+    },
+
+    updateMode: async (mode: 'business' | 'personal' | 'client'): Promise<User> => {
+        const response = await api.put<User>('/users/me/mode', { mode });
+        return response.data;
+    },
+
+    getMe: async (): Promise<User> => {
+        const response = await api.get<User>('/users/me');
+        return response.data;
     }
 };
 

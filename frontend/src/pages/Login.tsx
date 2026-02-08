@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { LoginRequest } from '../types/auth';
-import AuthService from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 const Login: React.FC = () => {
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState<LoginRequest>({
     username: '',
@@ -20,16 +21,16 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    
+
     try {
-       const token = await AuthService.login(formData);
-       localStorage.setItem('token', token.access_token);
-       navigate('/');
+      await login(formData);
+      navigate('/');
     } catch (err) {
-       console.error(err);
-       setError('Please enter valid credentials');
+      console.error(err);
+      const errorMessage = (err as any).response?.data?.detail || 'Please enter valid credentials';
+      setError(errorMessage);
     } finally {
-       setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -40,6 +41,9 @@ const Login: React.FC = () => {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to your account
           </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Or <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">create a new account</Link>
+          </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">

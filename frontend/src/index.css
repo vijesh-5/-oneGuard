@@ -1,3 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* Midnight Theme Palette */
+    --background: 222.2 84% 4.9%;
+    /* slate-950 */
+    --foreground: 210 40% 98%;
+    /* slate-50 */
+
+    --primary: 190 90% 50%;
+    /* cyan-500 (Neon Blue) */
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 290 80% 50%;
+    /* fuchsia-500 (Neon Purple) */
+    --secondary-foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-50 font-sans antialiased selection:bg-cyan-500/30 selection:text-cyan-200;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Custom Scrollbar - Dark & Slim */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-950;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-slate-900/60 backdrop-blur-xl border border-slate-800/60 shadow-2xl;
+  }
+
+  .glass-card {
+    @apply bg-slate-900/40 backdrop-blur-md border border-slate-800/60 hover:border-cyan-500/50 hover:shadow-[0_0_20px_-5px_theme(colors.cyan.500/0.3)] transition-all duration-300;
+  }
+
+  /* Neon Glass for High Emphasis areas */
+  .glass-neon {
+    @apply bg-slate-900/80 backdrop-blur-2xl border border-cyan-500/30 shadow-[0_0_15px_-5px_theme(colors.cyan.500/0.2)];
+  }
+
+  .input-glass {
+    @apply bg-slate-950/50 border border-slate-700 text-slate-200 placeholder:text-slate-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all duration-200;
+  }
+
+  .btn-neon {
+    @apply bg-cyan-500 text-slate-950 font-bold hover:bg-cyan-400 hover:shadow-[0_0_15px_theme(colors.cyan.400/0.5)] transition-all duration-300;
+  }
+
+  .table-row-hover {
+    @apply hover:bg-slate-800/50 transition-colors duration-200;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 10px theme('colors.cyan.500 / 0.5');
+  }
+
+  .nav-link-glow {
+    @apply relative overflow-hidden;
+  }
+
+  .nav-link-glow::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-[2px] bg-cyan-500 scale-x-0 transition-transform duration-300 origin-left shadow-[0_0_10px_theme(colors.cyan.500)];
+  }
+
+  .nav-link-glow:hover::after {
+    @apply scale-x-100;
+  }
+
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-400 rounded-lg transition-all duration-200 hover:text-slate-100 hover:bg-slate-800/50;
+  }
+
+  .nav-item.active {
+    @apply bg-cyan-500/10 text-cyan-400 font-semibold shadow-[inset_3px_0_0_0_theme(colors.cyan.500)];
+  }
+}

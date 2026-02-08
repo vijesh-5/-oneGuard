@@ -7,10 +7,10 @@ import ProductService from '../services/productService';
 const Plans: React.FC = () => {
     const [plans, setPlans] = useState<Plan[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
-    const [newPlan, setNewPlan] = useState<PlanCreate>({ 
-        product_id: 0, 
-        name: '', 
-        billing_period: 'monthly', 
+    const [newPlan, setNewPlan] = useState<PlanCreate>({
+        product_id: 0,
+        name: '',
+        billing_period: 'monthly',
         price: 0,
         min_quantity: 1,
         auto_close: false,
@@ -45,7 +45,7 @@ const Plans: React.FC = () => {
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-        
+
         let processedValue: any = value;
         if (type === 'number') {
             processedValue = value === '' ? 0 : parseFloat(value);
@@ -63,10 +63,10 @@ const Plans: React.FC = () => {
         e.preventDefault();
         try {
             await PlanService.create(newPlan);
-            setNewPlan({ 
-                product_id: products[0]?.id || 0, 
-                name: '', 
-                billing_period: 'monthly', 
+            setNewPlan({
+                product_id: products[0]?.id || 0,
+                name: '',
+                billing_period: 'monthly',
                 price: 0,
                 min_quantity: 1,
                 auto_close: false,
@@ -85,31 +85,34 @@ const Plans: React.FC = () => {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex justify-between items-center mb-8">
+        <div className="space-y-8">
+            <div className="flex justify-between items-end">
                 <div>
-                    <h2 className="text-3xl font-extrabold text-gray-900">Billing Plans</h2>
-                    <p className="mt-1 text-sm text-gray-500">Define recurring billing rules for your products.</p>
+                    <h2 className="text-4xl font-bold text-white tracking-tight">Billing Plans</h2>
+                    <p className="mt-2 text-slate-400">Define recurring billing rules for your products.</p>
                 </div>
-                <button 
+                <button
                     onClick={() => setIsFormVisible(!isFormVisible)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-bold rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                    className="btn-neon inline-flex items-center px-6 py-2.5 rounded-lg shadow-lg"
                 >
                     {isFormVisible ? 'Cancel' : 'Create Plan'}
                 </button>
             </div>
 
             {isFormVisible && (
-                <div className="bg-white p-8 rounded-2xl shadow-lg mb-10 border border-gray-100">
-                    <h3 className="text-lg font-bold text-gray-800 mb-6">New Billing Configuration</h3>
+                <div className="glass-neon p-8 rounded-2xl mb-10 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                        <span className="w-1.5 h-6 bg-cyan-500 rounded-full"></span>
+                        New Billing Configuration
+                    </h3>
                     <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700">Associated Product</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-1.5">Associated Product</label>
                             <select
                                 name="product_id"
                                 value={newPlan.product_id}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2.5"
+                                className="input-glass w-full rounded-lg p-3 bg-slate-900"
                             >
                                 {products.map(p => (
                                     <option key={p.id} value={p.id}>{p.name}</option>
@@ -117,7 +120,7 @@ const Plans: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700">Plan Display Name</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-1.5">Plan Display Name</label>
                             <input
                                 type="text"
                                 name="name"
@@ -125,16 +128,16 @@ const Plans: React.FC = () => {
                                 placeholder="e.g. Pro Monthly"
                                 value={newPlan.name}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2.5"
+                                className="input-glass w-full rounded-lg p-3"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700">Billing Period</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-1.5">Billing Period</label>
                             <select
                                 name="billing_period"
                                 value={newPlan.billing_period}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2.5"
+                                className="input-glass w-full rounded-lg p-3 bg-slate-900"
                             >
                                 <option value="monthly">Monthly</option>
                                 <option value="yearly">Yearly</option>
@@ -143,7 +146,7 @@ const Plans: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700">Recurring Price (USD)</label>
+                            <label className="block text-sm font-medium text-slate-300 mb-1.5">Recurring Price (USD)</label>
                             <input
                                 type="number"
                                 name="price"
@@ -152,29 +155,29 @@ const Plans: React.FC = () => {
                                 step="0.01"
                                 value={newPlan.price || ''}
                                 onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2.5"
+                                className="input-glass w-full rounded-lg p-3"
                             />
                         </div>
 
-                        <div className="col-span-2 grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl">
-                            <label className="flex items-center space-x-3 cursor-pointer">
-                                <input type="checkbox" name="renewable" checked={newPlan.renewable} onChange={handleInputChange} className="h-4 w-4 text-indigo-600 rounded" />
-                                <span className="text-sm font-medium text-gray-700">Auto-Renew</span>
+                        <div className="col-span-2 grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                            <label className="flex items-center space-x-3 cursor-pointer group">
+                                <input type="checkbox" name="renewable" checked={newPlan.renewable} onChange={handleInputChange} className="h-5 w-5 text-cyan-500 rounded border-slate-600 bg-slate-800 focus:ring-cyan-500/50 focus:ring-offset-0" />
+                                <span className="text-sm font-medium text-slate-300 group-hover:text-cyan-400 transition-colors">Auto-Renew</span>
                             </label>
-                            <label className="flex items-center space-x-3 cursor-pointer">
-                                <input type="checkbox" name="pausable" checked={newPlan.pausable} onChange={handleInputChange} className="h-4 w-4 text-indigo-600 rounded" />
-                                <span className="text-sm font-medium text-gray-700">Pausable</span>
+                            <label className="flex items-center space-x-3 cursor-pointer group">
+                                <input type="checkbox" name="pausable" checked={newPlan.pausable} onChange={handleInputChange} className="h-5 w-5 text-cyan-500 rounded border-slate-600 bg-slate-800 focus:ring-cyan-500/50 focus:ring-offset-0" />
+                                <span className="text-sm font-medium text-slate-300 group-hover:text-cyan-400 transition-colors">Pausable</span>
                             </label>
-                            <label className="flex items-center space-x-3 cursor-pointer">
-                                <input type="checkbox" name="auto_close" checked={newPlan.auto_close} onChange={handleInputChange} className="h-4 w-4 text-indigo-600 rounded" />
-                                <span className="text-sm font-medium text-gray-700">Auto-Close</span>
+                            <label className="flex items-center space-x-3 cursor-pointer group">
+                                <input type="checkbox" name="auto_close" checked={newPlan.auto_close} onChange={handleInputChange} className="h-5 w-5 text-cyan-500 rounded border-slate-600 bg-slate-800 focus:ring-cyan-500/50 focus:ring-offset-0" />
+                                <span className="text-sm font-medium text-slate-300 group-hover:text-cyan-400 transition-colors">Auto-Close</span>
                             </label>
                         </div>
 
-                        <div className="col-span-2">
-                            <button 
+                        <div className="col-span-2 pt-4">
+                            <button
                                 type="submit"
-                                className="w-full inline-flex justify-center py-3 px-4 border border-transparent shadow-sm text-sm font-bold rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors"
+                                className="w-full inline-flex justify-center py-3.5 px-4 rounded-lg shadow-lg text-sm font-bold text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 transition-all duration-300"
                             >
                                 Activate Billing Plan
                             </button>
@@ -183,35 +186,46 @@ const Plans: React.FC = () => {
                 </div>
             )}
 
-            <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
+            <div className="glass-panel overflow-hidden rounded-2xl">
                 {loading ? (
-                     <div className="p-12 text-center text-gray-500">Syncing plans...</div>
+                    <div className="p-12 text-center">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-cyan-500"></div>
+                        <p className="mt-4 text-slate-400">Syncing plans...</p>
+                    </div>
                 ) : plans.length === 0 ? (
-                    <div className="p-12 text-center text-gray-500">No plans configured yet.</div>
+                    <div className="p-16 text-center text-slate-500">
+                        <div className="mb-4">
+                            <span className="inline-block p-4 rounded-full bg-slate-800/50 text-slate-600">
+                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                            </span>
+                        </div>
+                        <p className="text-lg font-medium text-slate-400">No plans configured yet</p>
+                        <p className="text-sm mt-1">Create a plan to start selling your products.</p>
+                    </div>
                 ) : (
-                    <table className="min-w-full divide-y divide-gray-100">
-                        <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-slate-800">
+                        <thead className="bg-slate-900/50">
                             <tr>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Target Product</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Plan Name</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Period</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">Price</th>
-                                <th className="px-6 py-4 text-right text-xs font-bold text-gray-400 uppercase tracking-widest">Actions</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Target Product</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Plan Name</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Period</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest">Price</th>
+                                <th className="px-6 py-4 text-right text-xs font-bold text-slate-400 uppercase tracking-widest">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-50">
+                        <tbody className="divide-y divide-slate-800/50">
                             {plans.map((plan) => (
-                                <tr key={plan.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-900 font-bold">{getProductName(plan.product_id)}</td>
-                                    <td className="px-6 py-5 whitespace-nowrap text-sm text-gray-600 font-medium">{plan.name}</td>
+                                <tr key={plan.id} className="table-row-hover group">
+                                    <td className="px-6 py-5 whitespace-nowrap text-sm text-white font-bold group-hover:text-cyan-400 transition-colors">{getProductName(plan.product_id)}</td>
+                                    <td className="px-6 py-5 whitespace-nowrap text-sm text-slate-400 font-medium">{plan.name}</td>
                                     <td className="px-6 py-5 whitespace-nowrap">
-                                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700">
+                                        <span className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-800 border border-slate-700 text-cyan-400">
                                             {plan.billing_period}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-gray-900">${plan.price.toFixed(2)}</td>
+                                    <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-slate-200">${plan.price.toFixed(2)}</td>
                                     <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
-                                        <button className="text-indigo-600 hover:text-indigo-900 font-bold">Configure</button>
+                                        <button className="text-cyan-500 hover:text-cyan-400 transition-colors font-bold">Configure</button>
                                     </td>
                                 </tr>
                             ))}
