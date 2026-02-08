@@ -29,7 +29,7 @@ const Payments: React.FC = () => {
                 <p className="mt-1 text-sm text-slate-400">View all transactions and payment statuses.</p>
             </div>
 
-            <div className="glass-panel rounded-2xl overflow-hidden">
+            <div className="glass-panel rounded-2xl overflow-hidden overflow-x-auto">
                 {loading ? (
                     <div className="p-20 text-center">
                         <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-500"></div>
@@ -67,8 +67,8 @@ const Payments: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${payment.status === 'completed' ? 'bg-green-500/10 text-green-400 border border-green-500/20 shadow-[0_0_10px_-4px_theme(colors.green.500)]' :
-                                                payment.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
-                                                    'bg-red-500/10 text-red-400 border border-red-500/20'
+                                            payment.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
+                                                'bg-red-500/10 text-red-400 border border-red-500/20'
                                             }`}>
                                             {payment.status}
                                         </span>
