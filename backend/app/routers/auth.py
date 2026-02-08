@@ -4,7 +4,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..schemas import UserCreate, UserResponse, Token
+from ..schemas import UserCreate, UserResponse, Token, UserUpdate
+from .. import schemas
 from ..models import User
 from ..auth_utils import get_password_hash, verify_password, create_access_token, get_current_user, get_user_by_username, get_user_by_email
 from ..config import settings
@@ -45,5 +46,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 @router.get("/users/me", response_model=UserResponse)
 async def read_users_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+@router.patch("/users/me", response_model=UserResponse)
+async def update_user_me(user_update: schemas.UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if user_update.mode:
+        current_user.mode = user_update.mode
+    
+    db.commit()
+    db.refresh(current_user)
     return current_user
     

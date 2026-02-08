@@ -83,166 +83,182 @@ const Products: React.FC = () => {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Products</h2>
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">Products</h2>
+                    <p className="text-slate-500 text-sm mt-1 font-medium">Configure and manage your service catalog.</p>
+                </div>
                 <button 
                     onClick={() => {
                         if (isFormVisible) resetForm();
                         else setIsFormVisible(true);
                     }}
-                    className={`${isFormVisible ? 'bg-gray-500 hover:bg-gray-600' : 'bg-indigo-600 hover:bg-indigo-700'} text-white px-5 py-2 rounded-lg transition-colors duration-200 shadow-sm font-medium`}
+                    className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm ${isFormVisible ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200'}`}
                 >
-                    {isFormVisible ? 'Cancel' : 'Add Product'}
+                    {isFormVisible ? 'Discard' : 'New Product'}
                 </button>
             </div>
 
             {isFormVisible && (
-                <div className="bg-white p-8 rounded-xl shadow-lg mb-8 border border-gray-100 animate-fade-in-down">
-                    <h3 className="text-xl font-bold mb-6 text-gray-800 border-b pb-2">{editingId ? 'Edit Product' : 'Create New Product'}</h3>
+                <div className="premium-card executive-shadow p-8">
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-6">{editingId ? 'Modify Product' : 'Initialize Product'}</h3>
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Product Identifier</label>
                                 <input
                                     type="text"
                                     name="name"
                                     required
                                     value={newProduct.name}
                                     onChange={handleInputChange}
-                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition duration-150 ease-in-out sm:text-sm p-2 border"
-                                    placeholder="Product Name"
+                                    className="w-full h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all px-4 text-sm font-medium"
+                                    placeholder="e.g. Enterprise Cloud Compute"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Base Price ($)</label>
-                                <input
-                                    type="number"
-                                    name="base_price"
-                                    required
-                                    min="0"
-                                    step="0.01"
-                                    value={newProduct.base_price}
-                                    onChange={handleInputChange}
-                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition duration-150 ease-in-out sm:text-sm p-2 border"
-                                    placeholder="0.00"
-                                />
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Base Unit Price</label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">$</span>
+                                    <input
+                                        type="number"
+                                        name="base_price"
+                                        required
+                                        min="0"
+                                        step="0.01"
+                                        value={newProduct.base_price}
+                                        onChange={handleInputChange}
+                                        className="w-full h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all pl-8 pr-4 text-sm font-medium"
+                                        placeholder="0.00"
+                                    />
+                                </div>
                             </div>
                         </div>
                         
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Executive Summary</label>
                             <textarea
                                 name="description"
                                 value={newProduct.description || ''}
                                 onChange={handleInputChange}
                                 rows={3}
-                                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition duration-150 ease-in-out sm:text-sm p-2 border"
-                                placeholder="Describe the product..."
+                                className="w-full rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all p-4 text-sm font-medium"
+                                placeholder="Describe the service capabilities..."
                             ></textarea>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Classification</label>
                                 <input
                                     type="text"
                                     name="type"
                                     value={newProduct.type || ''}
                                     onChange={handleInputChange}
-                                    className="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition duration-150 ease-in-out sm:text-sm p-2 border"
-                                    placeholder="e.g. Service, Digital, Physical"
+                                    className="w-full h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all px-4 text-sm font-medium"
+                                    placeholder="e.g. Infrastructure, Software, Support"
                                 />
                             </div>
                             <div className="flex items-center pt-6">
-                                <label className="inline-flex items-center cursor-pointer">
+                                <label className="group flex items-center space-x-3 cursor-pointer">
+                                    <div className={`w-10 h-6 rounded-full transition-colors relative ${newProduct.is_active ? 'bg-indigo-600' : 'bg-slate-200'}`}>
+                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${newProduct.is_active ? 'left-5' : 'left-1'}`}></div>
+                                    </div>
                                     <input
                                         type="checkbox"
                                         name="is_active"
+                                        hidden
                                         checked={newProduct.is_active !== undefined ? newProduct.is_active : true}
                                         onChange={handleInputChange}
-                                        className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded transition duration-150 ease-in-out"
                                     />
-                                    <span className="ml-2 text-gray-900 font-medium">Active Status</span>
+                                    <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors">Enabled for provisioning</span>
                                 </label>
                             </div>
                         </div>
 
-                        <div className="flex justify-end pt-4">
+                        <div className="flex justify-end pt-4 space-x-4">
+                            {editingId && (
+                                <button type="button" onClick={resetForm} className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors">Cancel Edit</button>
+                            )}
                             <button
                                 type="submit"
-                                className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg hover:bg-indigo-700 shadow-md transition-all duration-200 font-medium flex items-center"
+                                className="bg-slate-900 text-white px-10 py-3 rounded-xl text-sm font-bold hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200 active:scale-95"
                             >
-                                {editingId ? 'Update Product' : 'Create Product'}
+                                {editingId ? 'Finalize Changes' : 'Publish Product'}
                             </button>
                         </div>
                     </form>
                 </div>
             )}
 
-            <div className="bg-white shadow-xl rounded-xl overflow-hidden border border-gray-100">
+            <div className="premium-card executive-shadow min-h-[400px]">
                 {loading ? (
-                    <div className="p-10 text-center text-gray-500 animate-pulse">Loading products...</div>
+                    <div className="p-20 flex flex-col items-center justify-center space-y-4">
+                        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-slate-400 font-medium text-sm">Synchronizing inventory...</p>
+                    </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50/50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Price</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th scope="col" className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                        <table className="min-w-full">
+                            <thead>
+                                <tr className="border-b border-slate-100 bg-slate-50/50">
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-widest">ID</th>
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-widest">Nominal Specification</th>
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-widest">Type</th>
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-widest">Base Rate</th>
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
+                                    <th className="px-6 py-4 text-right text-[11px] font-bold text-slate-500 uppercase tracking-widest">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {products.map((product) => (
-                                    <tr key={product.id} className="hover:bg-gray-50/80 transition-colors duration-150">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{product.id}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-semibold text-gray-900">{product.name}</div>
-                                            <div className="text-xs text-gray-500 truncate max-w-xs">{product.description}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-                                                {product.type || 'N/A'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            ${product.base_price.toFixed(2)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                product.is_active 
-                                                ? 'bg-green-100 text-green-800 border border-green-200' 
-                                                : 'bg-gray-100 text-gray-800 border border-gray-200'
-                                            }`}>
-                                                {product.is_active ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button 
-                                                onClick={() => handleEdit(product)}
-                                                className="text-indigo-600 hover:text-indigo-900 mr-4 transition-colors font-medium"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDelete(product.id)}
-                                                className="text-red-600 hover:text-red-900 transition-colors font-medium"
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {products.length === 0 && (
+                            <tbody className="divide-y divide-slate-100">
+                                {products.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-10 text-center text-gray-500">
-                                            No products found. Click "Add Product" to create one.
-                                        </td>
+                                        <td colSpan={6} className="px-6 py-20 text-center text-slate-400 font-medium">No products registered in the catalog yet.</td>
                                     </tr>
+                                ) : (
+                                    products.map((product) => (
+                                        <tr key={product.id} className="hover:bg-slate-50/80 transition-colors group">
+                                            <td className="px-6 py-4 whitespace-nowrap text-[12px] font-bold text-slate-400 uppercase tracking-tighter">#{product.id}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm font-bold text-slate-900">{product.name}</div>
+                                                <div className="text-[11px] font-medium text-slate-400 truncate max-w-xs mt-0.5">{product.description || 'No description provided.'}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                                    {product.type || 'Standard'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-black text-slate-900">
+                                                ${product.base_price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`status-pill ${
+                                                    product.is_active 
+                                                    ? 'status-pill-success' 
+                                                    : 'status-pill-neutral opacity-50'
+                                                }`}>
+                                                    {product.is_active ? 'Active' : 'Archived'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                <div className="flex justify-end space-x-3">
+                                                    <button 
+                                                        onClick={() => handleEdit(product)}
+                                                        className="text-[11px] font-bold text-slate-400 uppercase tracking-wider hover:text-indigo-600 transition-colors"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDelete(product.id)}
+                                                        className="text-[11px] font-bold text-slate-400 uppercase tracking-wider hover:text-rose-600 transition-colors"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
                                 )}
                             </tbody>
                         </table>

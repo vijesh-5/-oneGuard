@@ -1,3 +1,74 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-primary: 79 70 229; /* Indigo 600 */
+    --slate-50: 248 250 252;
+    --slate-100: 241 245 249;
+    --slate-200: 226 232 240;
+    --slate-300: 203 213 225;
+    --slate-400: 148 163 184;
+    --slate-500: 100 116 139;
+    --slate-600: 71 85 105;
+    --slate-700: 51 65 85;
+    --slate-800: 30 41 59;
+    --slate-900: 15 23 42;
+  }
+
+  body {
+    @apply antialiased text-slate-900 bg-slate-50/50 selection:bg-indigo-100 selection:text-indigo-900;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer components {
+  .premium-card {
+    @apply bg-white border border-slate-200/60 shadow-sm rounded-xl overflow-hidden transition-all duration-300 hover:shadow-md hover:border-slate-300/60;
+  }
+  
+  .executive-shadow {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.02), 0 1px 2px -1px rgb(0 0 0 / 0.02);
+  }
+
+  .nav-link-active {
+    @apply text-indigo-600 bg-indigo-50/50;
+  }
+}
+
+/* Smooth transitions for all interactive elements */
+a, button, input, select, textarea {
+  @apply transition-all duration-200 ease-in-out;
+}
+
+/* Interactive elements focus states */
+input:focus, select:focus, textarea:focus {
+  @apply outline-none ring-2 ring-indigo-500/10 border-indigo-500/50;
+}
+
+/* Custom scrollbar for a cleaner look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full hover:bg-slate-300;
+}
+
+/* Status Pill Designs */
+.status-pill {
+  @apply px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider inline-flex items-center;
+}
+
+.status-pill-success { @apply bg-emerald-50 text-emerald-700 border border-emerald-100; }
+.status-pill-warning { @apply bg-amber-50 text-amber-700 border border-amber-100; }
+.status-pill-danger { @apply bg-rose-50 text-rose-700 border border-rose-100; }
+.status-pill-info { @apply bg-sky-50 text-sky-700 border border-sky-100; }
+.status-pill-neutral { @apply bg-slate-50 text-slate-700 border border-slate-200; }

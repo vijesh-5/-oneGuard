@@ -4,31 +4,15 @@ from typing import List, Optional
 from datetime import datetime, date # Import date
 
 from ..database import get_db
-from ..models import Payment as DBPayment, Invoice as DBInvoice
+from ..models import Payment as DBPayment, Invoice as DBInvoice, User, Customer as DBCustomer
 from ..schemas import Payment, PaymentCreate, PaymentBase, InvoiceUpdate, Invoice # Import Invoice
+from ..auth_utils import get_current_user
 
 router = APIRouter()
 
-@router.patch("/invoices/{invoice_id}/mark-as-paid", response_model=Invoice, status_code=status.HTTP_200_OK)
-def mark_invoice_as_paid(invoice_id: int, invoice_update: InvoiceUpdate, db: Session = Depends(get_db)):
-    db_invoice = db.query(DBInvoice).filter(DBInvoice.id == invoice_id).first()
-    if not db_invoice:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found")
-
-    if db_invoice.status == "paid":
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invoice is already paid.")
-    
-    db_invoice.status = "paid"
-    db_invoice.payment_method = invoice_update.payment_method
-    db_invoice.paid_date = invoice_update.paid_date if invoice_update.paid_date else date.today()
-
-    db.commit()
-    db.refresh(db_invoice)
-    return db_invoice
-
 @router.post("/payments/", response_model=Payment, status_code=status.HTTP_201_CREATED)
-def create_payment(payment: PaymentCreate, db: Session = Depends(get_db)):
-    db_invoice = db.query(DBInvoice).filter(DBInvoice.id == payment.invoice_id).first()
+def create_payment(payment: PaymentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_invoice = db.query(DBInvoice).join(DBCustomer).filter(DBInvoice.id == payment.invoice_id, DBCustomer.owner_id == current_user.id).first()
     if not db_invoice:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found")
 
@@ -46,26 +30,26 @@ def create_payment(payment: PaymentCreate, db: Session = Depends(get_db)):
     return db_payment
 
 @router.get("/payments/", response_model=List[Payment])
-def read_payments(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    payments = db.query(DBPayment).offset(skip).limit(limit).all()
+def read_payments(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    payments = db.query(DBPayment).join(DBInvoice).join(DBCustomer).filter(DBCustomer.owner_id == current_user.id).offset(skip).limit(limit).all()
     return payments
 
 @router.get("/payments/{payment_id}", response_model=Payment)
-def read_payment(payment_id: int, db: Session = Depends(get_db)):
-    payment = db.query(DBPayment).filter(DBPayment.id == payment_id).first()
+def read_payment(payment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    payment = db.query(DBPayment).join(DBInvoice).join(DBCustomer).filter(DBPayment.id == payment_id, DBCustomer.owner_id == current_user.id).first()
     if payment is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found")
     return payment
 
 # Simulation endpoint as per guide
 @router.post("/payments/simulate", response_model=Payment, status_code=status.HTTP_201_CREATED)
-def simulate_payment(payment_details: PaymentBase, db: Session = Depends(get_db)):
+def simulate_payment(payment_details: PaymentBase, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # This is a simplified simulation. In a real scenario, this would involve
     # calling an external payment gateway and handling its response.
     # For now, we'll just create a payment record with 'success' status
     # and link it to an existing invoice.
 
-    db_invoice = db.query(DBInvoice).filter(DBInvoice.id == payment_details.invoice_id).first()
+    db_invoice = db.query(DBInvoice).join(DBCustomer).filter(DBInvoice.id == payment_details.invoice_id, DBCustomer.owner_id == current_user.id).first()
     if not db_invoice:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found")
 
@@ -88,8 +72,8 @@ def simulate_payment(payment_details: PaymentBase, db: Session = Depends(get_db)
     return db_payment
 
 @router.patch("/payments/{payment_id}", response_model=Payment)
-def update_payment(payment_id: int, payment_update: PaymentCreate, db: Session = Depends(get_db)):
-    db_payment = db.query(DBPayment).filter(DBPayment.id == payment_id).first()
+def update_payment(payment_id: int, payment_update: PaymentCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_payment = db.query(DBPayment).join(DBInvoice).join(DBCustomer).filter(DBPayment.id == payment_id, DBCustomer.owner_id == current_user.id).first()
     if db_payment is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found")
     
@@ -102,8 +86,8 @@ def update_payment(payment_id: int, payment_update: PaymentCreate, db: Session =
     return db_payment
 
 @router.delete("/payments/{payment_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_payment(payment_id: int, db: Session = Depends(get_db)):
-    db_payment = db.query(DBPayment).filter(DBPayment.id == payment_id).first()
+def delete_payment(payment_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_payment = db.query(DBPayment).join(DBInvoice).join(DBCustomer).filter(DBPayment.id == payment_id, DBCustomer.owner_id == current_user.id).first()
     if db_payment is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment not found")
     db.delete(db_payment)

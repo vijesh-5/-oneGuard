@@ -1,14 +1,19 @@
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import date, datetime # Import datetime for Product schema
+from datetime import date, datetime
 
 # User Schemas
 class UserBase(BaseModel):
     username: str
     email: str
+    mode: str = "business" # Added mode
 
 class UserCreate(UserBase):
     password: str
+
+class UserUpdate(BaseModel):
+    mode: Optional[str] = None
+
 
 class UserResponse(UserBase):
     id: int
@@ -18,6 +23,28 @@ class UserResponse(UserBase):
     class Config:
         orm_mode = True
 
+# Customer Schemas (NEW)
+class CustomerBase(BaseModel):
+    name: str
+    email: str
+    portal_user_id: Optional[int] = None
+
+class CustomerCreate(CustomerBase):
+    pass
+
+class Customer(CustomerBase):
+    id: int
+    owner_id: int
+    portal_user_id: Optional[int] = None
+
+    class Config:
+        orm_mode = True
+
+class CustomerInviteResponse(BaseModel):
+    username: str
+    password: str
+    portal_url: str
+
 # Token Schemas
 class Token(BaseModel):
     access_token: str
@@ -26,9 +53,6 @@ class Token(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
-
-# LoginResponse is replaced by Token for successful logins, but we might keep it for error messages if needed.
-# For now, let's assume successful login directly returns Token.
 
 class ProductBase(BaseModel):
     name: str
@@ -42,7 +66,7 @@ class ProductCreate(ProductBase):
 
 class Product(ProductBase):
     id: int
-    created_at: datetime # This will be set by the database
+    created_at: datetime
 
     class Config:
         orm_mode = True
@@ -70,19 +94,18 @@ class Plan(PlanBase):
 
 class SubscriptionBase(BaseModel):
     subscription_number: str
-    customer_id: Optional[int] = None
+    customer_id: int # Now refers to Customer ID
     plan_id: int
-    status: str = "draft" # "draft", "quotation", "confirmed", "active", "closed"
+    status: str = "draft"
     start_date: date
     end_date: Optional[date] = None
     payment_terms: Optional[str] = None
 
 class SubscriptionCreate(SubscriptionBase):
-    subscription_lines: List["SubscriptionLineCreate"] = [] # New field
+    subscription_lines: List["SubscriptionLineCreate"] = []
 
 class Subscription(SubscriptionBase):
     id: int
-    customer_id: int # Override to be required in response if needed, but Optional is fine for base
     next_billing_date: Optional[date] = None
     subtotal: float = 0.0
     tax_total: float = 0.0
@@ -91,21 +114,23 @@ class Subscription(SubscriptionBase):
     created_at: datetime
     confirmed_at: Optional[datetime] = None
     closed_at: Optional[datetime] = None
-    subscription_lines: List["SubscriptionLine"] = [] # Add subscription lines
+    subscription_lines: List["SubscriptionLine"] = []
+    
+    # Optional: Include full customer details if needed
+    customer: Optional[Customer] = None
 
     class Config:
         orm_mode = True
 
 class SubscriptionConfirm(BaseModel):
     status: str
-    invoice_id: int # Added for frontend redirect
+    invoice_id: int
     next_billing_date: Optional[date] = None
     confirmed_at: Optional[datetime] = None
     subtotal: float = 0.0
     tax_total: float = 0.0
     discount_total: float = 0.0
     grand_total: float = 0.0
-
 
 class SubscriptionLineBase(BaseModel):
     product_id: Optional[int] = None
@@ -130,16 +155,16 @@ class SubscriptionLine(SubscriptionLineBase):
 class InvoiceBase(BaseModel):
     invoice_number: str
     subscription_id: int
-    customer_id: Optional[int] = None
+    customer_id: int # Now refers to Customer ID
     issue_date: date
     due_date: date
-    status: str = "draft" # "draft", "confirmed", "paid", "cancelled"
+    status: str = "draft"
     subtotal: float = 0.0
     tax_total: float = 0.0
     discount_total: float = 0.0
     grand_total: float = 0.0
-    payment_method: Optional[str] = None # NEW
-    paid_date: Optional[date] = None # NEW
+    payment_method: Optional[str] = None
+    paid_date: Optional[date] = None
 
 class InvoiceCreate(InvoiceBase):
     pass
@@ -147,15 +172,17 @@ class InvoiceCreate(InvoiceBase):
 class InvoicePay(BaseModel):
     payment_method: str
 
-class InvoiceUpdate(BaseModel): # NEW
+class InvoiceUpdate(BaseModel):
     status: Optional[str] = None
     payment_method: Optional[str] = None
     paid_date: Optional[date] = None
 
 class Invoice(InvoiceBase):
     id: int
-    invoice_lines: List["InvoiceLine"] = [] # Add invoice lines
-    payments: List["Payment"] = [] # Add payments
+    invoice_lines: List["InvoiceLine"] = []
+    payments: List["Payment"] = []
+    
+    customer: Optional[Customer] = None
 
     class Config:
         orm_mode = True

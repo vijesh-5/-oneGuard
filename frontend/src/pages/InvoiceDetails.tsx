@@ -56,81 +56,95 @@ const InvoiceDetails: React.FC = () => {
     }
 
     return (
-        <div className="container mx-auto px-4 py-8">
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <button
                 onClick={() => navigate('/invoices')}
-                className="mb-4 text-indigo-600 hover:text-indigo-800"
+                className="group flex items-center space-x-2 text-[11px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-colors"
             >
-                &larr; Back to Invoices
+                <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
+                <span>Return to Records</span>
             </button>
 
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-                <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-                    <div>
-                        <h3 className="text-lg leading-6 font-medium text-gray-900">
+            <div className="premium-card executive-shadow bg-white overflow-hidden">
+                <div className="px-8 py-10 border-b border-slate-100 flex justify-between items-start">
+                    <div className="space-y-1">
+                        <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest leading-none block">Financial Statement</span>
+                        <h3 className="text-3xl font-black text-slate-900 tracking-tighter">
                             Invoice #{invoice.id}
                         </h3>
-                        <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                            Subscription: #{invoice.subscription_id}
+                        <p className="text-sm font-medium text-slate-400">
+                            Contract Association: <span className="text-slate-900 font-bold">#{invoice.subscription_id}</span>
                         </p>
                     </div>
-                    <div>
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            invoice.status === 'paid' ? 'bg-green-100 text-green-800' :
-                            invoice.status === 'overdue' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+                    <div className="flex flex-col items-end space-y-3">
+                        <span className={`status-pill ${
+                            invoice.status === 'paid' ? 'status-pill-success' :
+                            invoice.status === 'overdue' ? 'status-pill-danger' : 'status-pill-warning'
                         }`}>
                             {invoice.status.toUpperCase()}
                         </span>
                     </div>
                 </div>
-                <div className="border-t border-gray-200">
-                    <dl>
-                        <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt className="text-sm font-medium text-gray-500">Status</dt>
-                            <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{invoice.status}</dd>
+                
+                <div className="p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        <div className="space-y-1.5">
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Settlement Status</span>
+                            <span className="text-sm font-black text-slate-900 capitalize">{invoice.status}</span>
                         </div>
-                        <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt className="text-sm font-medium text-gray-500">Issue Date</dt>
-                            <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{invoice.issue_date as unknown as string}</dd>
+                        <div className="space-y-1.5">
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Release Date</span>
+                            <span className="text-sm font-black text-slate-900">{invoice.issue_date as unknown as string}</span>
                         </div>
-                        <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt className="text-sm font-medium text-gray-500">Due Date</dt>
-                            <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{invoice.due_date as unknown as string}</dd>
+                        <div className="space-y-1.5">
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Maturity Date</span>
+                            <span className="text-sm font-black text-slate-900">{invoice.due_date as unknown as string}</span>
                         </div>
-                        <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                             <dt className="text-sm font-medium text-gray-500">Total Amount</dt>
-                             <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 font-bold">${invoice.grand_total.toFixed(2)}</dd>
+                        <div className="space-y-1.5">
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Aggregate Total</span>
+                            <span className="text-lg font-black text-slate-900">${invoice.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                         </div>
-                         {invoice.status === 'paid' && (
-                            <div className="bg-green-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                                <dt className="text-sm font-medium text-gray-500">Payment Info</dt>
-                                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                                    Paid via {invoice.payment_method} on {invoice.paid_date as unknown as string}
-                                </dd>
+                    </div>
+
+                    {invoice.status === 'paid' && (
+                        <div className="mt-10 p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100 flex items-center space-x-4">
+                            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
                             </div>
-                        )}
-                    </dl>
+                            <div>
+                                <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest block">Payment Confirmed</span>
+                                <p className="text-sm font-bold text-emerald-900">
+                                    Settled via {invoice.payment_method} on {invoice.paid_date as unknown as string}
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
                 
-                 {/* Action Section */}
-                 {invoice.status !== 'paid' && (
-                    <div className="bg-gray-50 px-4 py-4 sm:px-6 flex items-center justify-end space-x-4">
-                        <select
-                            className="block rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
-                            value={selectedPaymentMethod}
-                            onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                        >
-                            <option value="">Select Payment Method</option>
-                            <option value="UPI">UPI</option>
-                            <option value="Netbanking">Netbanking</option>
-                            <option value="Card">Card</option>
-                        </select>
-                        <button
-                            onClick={handleMarkAsPaid}
-                            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-                        >
-                            Pay Inline
-                        </button>
+                {invoice.status !== 'paid' && (
+                    <div className="bg-slate-50/50 p-8 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="max-w-md">
+                            <p className="text-sm font-bold text-slate-900">Immediate Settlement Required</p>
+                            <p className="text-xs font-medium text-slate-500 mt-1">Please select your preferred secure payment method to finalize this transaction.</p>
+                        </div>
+                        <div className="flex items-center space-x-4 w-full md:w-auto">
+                            <select
+                                className="h-11 rounded-xl border-slate-200 bg-white focus:bg-white transition-all px-4 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-600/10 focus:border-indigo-600"
+                                value={selectedPaymentMethod}
+                                onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                            >
+                                <option value="">Select Method</option>
+                                <option value="UPI">UPI Security Net</option>
+                                <option value="Netbanking">Corporate Netbanking</option>
+                                <option value="Card">Premium Credit/Debit</option>
+                            </select>
+                            <button
+                                onClick={handleMarkAsPaid}
+                                className="h-11 bg-slate-900 text-white px-8 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200 active:scale-95 whitespace-nowrap"
+                            >
+                                Authorize Payment
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

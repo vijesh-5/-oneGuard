@@ -1,4 +1,4 @@
-import { LoginRequest, Token, UserCreate } from '../types/auth';
+import { LoginRequest, Token, User, UserCreate } from '../types/auth';
 import api from './api';
 
 const TOKEN_KEY = 'access_token';
@@ -42,6 +42,16 @@ const AuthService = {
 
     isAuthenticated: (): boolean => {
         return !!AuthService.getToken();
+    },
+
+    getCurrentUser: async (): Promise<User> => {
+        const response = await api.get<User>('/auth/users/me');
+        return response.data;
+    },
+
+    updateProfile: async (data: { mode?: string }): Promise<User> => {
+        const response = await api.patch<User>('/auth/users/me', data);
+        return response.data;
     }
 };
 

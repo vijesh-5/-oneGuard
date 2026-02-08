@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date, Boolean, DateTime
-from sqlalchemy.orm import relationship # Import relationship
-from datetime import datetime # Import datetime for created_at default
+from sqlalchemy.orm import relationship
+from datetime import datetime
 from .database import Base
 
 class User(Base):
@@ -12,10 +12,27 @@ class User(Base):
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    mode = Column(String, default="business") # 'business' or 'personal'
 
+    # Relationships
+    owned_customers = relationship("Customer", foreign_keys="Customer.owner_id", back_populates="owner")
+    # For portal users, this links to the customer record they represent
+    customer_profile = relationship("Customer", foreign_keys="Customer.portal_user_id", back_populates="portal_user", uselist=False)
+
+class Customer(Base):
+    __tablename__ = "customers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id")) # The business user who owns this customer record
+    name = Column(String, index=True)
+    email = Column(String, index=True)
+    portal_user_id = Column(Integer, ForeignKey("users.id"), nullable=True) # Optional link to a real user for portal access
+
+    owner = relationship("User", foreign_keys=[owner_id], back_populates="owned_customers")
+    portal_user = relationship("User", foreign_keys=[portal_user_id], back_populates="customer_profile")
+    
     subscriptions = relationship("Subscription", back_populates="customer")
     invoices = relationship("Invoice", back_populates="customer")
-
 
 class Product(Base):
     __tablename__ = "products"
@@ -23,65 +40,67 @@ class Product(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     base_price = Column(Float)
-    # New fields
     type = Column(String)
     description = Column(String)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True) # owner_id added for multi-tenancy
 
-    plans = relationship("Plan", back_populates="product") # Add relationship to plans
+    owner = relationship("User")
+    plans = relationship("Plan", back_populates="product")
 
 class Plan(Base):
     __tablename__ = "plans"
 
     id = Column(Integer, primary_key=True, index=True)
     product_id = Column(Integer, ForeignKey("products.id"))
-    name = Column(String, index=True) # e.g., "Monthly Basic"
-    billing_period = Column(String) # daily / weekly / monthly / yearly
-    price = Column(Float) # The existing price field is reused
+    name = Column(String, index=True)
+    billing_period = Column(String)
+    price = Column(Float)
     min_quantity = Column(Integer, default=1)
     auto_close = Column(Boolean, default=False)
     pausable = Column(Boolean, default=False)
     renewable = Column(Boolean, default=True)
-    start_date = Column(Date, nullable=True) # Plan availability start
-    end_date = Column(Date, nullable=True)   # Plan availability end
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True) # owner_id added for multi-tenancy
 
-    product = relationship("Product", back_populates="plans") # Add relationship to product
+    owner = relationship("User")
+    product = relationship("Product", back_populates="plans")
 
 class Subscription(Base):
     __tablename__ = "subscriptions"
     id = Column(Integer, primary_key=True, index=True)
     subscription_number = Column(String, unique=True, index=True)
-    customer_id = Column(Integer, ForeignKey("users.id")) # Link to User model
-
-    status = Column(String, default="draft") # "draft", "quotation", "confirmed", "active", "closed" (expanded states)
+    customer_id = Column(Integer, ForeignKey("customers.id")) # Re-pointed to customers
+    
+    status = Column(String, default="draft")
     start_date = Column(Date)
-    end_date = Column(Date, nullable=True) # NEW
-    next_billing_date = Column(Date, nullable=True) # Can be null if not yet active or closed
+    end_date = Column(Date, nullable=True)
+    next_billing_date = Column(Date, nullable=True)
+    payment_terms = Column(String, nullable=True)
 
-    payment_terms = Column(String, nullable=True) # NEW
+    subtotal = Column(Float, default=0.0)
+    tax_total = Column(Float, default=0.0)
+    discount_total = Column(Float, default=0.0)
+    grand_total = Column(Float, default=0.0)
 
-    subtotal = Column(Float, default=0.0) # NEW
-    tax_total = Column(Float, default=0.0) # NEW
-    discount_total = Column(Float, default=0.0) # NEW
-    grand_total = Column(Float, default=0.0) # NEW
-
-    created_at = Column(DateTime, default=datetime.utcnow) # NEW, for record creation
-    confirmed_at = Column(DateTime, nullable=True) # NEW
-    closed_at = Column(DateTime, nullable=True) # NEW
+    created_at = Column(DateTime, default=datetime.utcnow)
+    confirmed_at = Column(DateTime, nullable=True)
+    closed_at = Column(DateTime, nullable=True)
 
     plan_id = Column(Integer, ForeignKey("plans.id"))
     plan = relationship("Plan")
-    invoices = relationship("Invoice", back_populates="subscription") # Add relationship to invoices
-    subscription_lines = relationship("SubscriptionLine", back_populates="subscription") # NEW relationship
-    customer = relationship("User", back_populates="subscriptions") # Relationship to User
+    invoices = relationship("Invoice", back_populates="subscription")
+    subscription_lines = relationship("SubscriptionLine", back_populates="subscription")
+    customer = relationship("Customer", back_populates="subscriptions") # Relationship to Customer
 
 class SubscriptionLine(Base):
     __tablename__ = "subscription_lines"
 
     id = Column(Integer, primary_key=True, index=True)
     subscription_id = Column(Integer, ForeignKey("subscriptions.id"))
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=True) # Snapshot: can be null if product is deleted
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
     product_name_snapshot = Column(String)
     unit_price_snapshot = Column(Float)
     quantity = Column(Integer)
@@ -90,32 +109,29 @@ class SubscriptionLine(Base):
     line_total = Column(Float)
 
     subscription = relationship("Subscription", back_populates="subscription_lines")
-    product = relationship("Product") # Optional: to get current product info if needed
-
+    product = relationship("Product")
 
 class Invoice(Base):
     __tablename__ = "invoices"
     id = Column(Integer, primary_key=True, index=True)
-    invoice_number = Column(String, unique=True, index=True) # NEW
+    invoice_number = Column(String, unique=True, index=True)
     subscription_id = Column(Integer, ForeignKey("subscriptions.id"))
-    customer_id = Column(Integer, ForeignKey("users.id")) # Link to User model
+    customer_id = Column(Integer, ForeignKey("customers.id")) # Re-pointed to customers
 
-    issue_date = Column(Date) # Renamed from invoice_date
+    issue_date = Column(Date)
     due_date = Column(Date)
+    status = Column(String, default="draft")
+    paid_date = Column(Date, nullable=True)
 
-    status = Column(String, default="draft") # NEW states: "draft", "confirmed", "paid", "cancelled"
-
-    paid_date = Column(Date, nullable=True) # NEW
-
-    subtotal = Column(Float, default=0.0) # NEW
-    tax_total = Column(Float, default=0.0) # NEW
-    discount_total = Column(Float, default=0.0) # NEW
-    grand_total = Column(Float, default=0.0) # NEW
+    subtotal = Column(Float, default=0.0)
+    tax_total = Column(Float, default=0.0)
+    discount_total = Column(Float, default=0.0)
+    grand_total = Column(Float, default=0.0)
 
     subscription = relationship("Subscription", back_populates="invoices")
-    invoice_lines = relationship("InvoiceLine", back_populates="invoice") # NEW relationship
-    payments = relationship("Payment", back_populates="invoice") # NEW relationship
-    customer = relationship("User", back_populates="invoices") # Relationship to User
+    invoice_lines = relationship("InvoiceLine", back_populates="invoice")
+    payments = relationship("Payment", back_populates="invoice")
+    customer = relationship("Customer", back_populates="invoices") # Relationship to Customer
 
 class InvoiceLine(Base):
     __tablename__ = "invoice_lines"
@@ -138,17 +154,23 @@ class Tax(Base):
     name = Column(String, unique=True, index=True)
     percent = Column(Float)
     is_active = Column(Boolean, default=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True) # owner_id added for multi-tenancy
+
+    owner = relationship("User")
 
 class Discount(Base):
     __tablename__ = "discounts"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
-    type = Column(String) # e.g., "percentage", "fixed_amount"
+    type = Column(String)
     value = Column(Float)
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
     usage_limit = Column(Integer, nullable=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True) # owner_id added for multi-tenancy
+
+    owner = relationship("User")
 
 class Payment(Base):
     __tablename__ = "payments"
@@ -156,9 +178,9 @@ class Payment(Base):
     id = Column(Integer, primary_key=True, index=True)
     invoice_id = Column(Integer, ForeignKey("invoices.id"))
     amount = Column(Float)
-    method = Column(String) # e.g., "cash", "card", "upi", "netbanking"
+    method = Column(String)
     reference_id = Column(String, nullable=True)
-    status = Column(String, default="pending") # e.g., "pending", "success", "failed"
+    status = Column(String, default="pending")
     payment_date = Column(DateTime, default=datetime.utcnow)
 
     invoice = relationship("Invoice", back_populates="payments")

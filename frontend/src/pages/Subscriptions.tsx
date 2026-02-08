@@ -6,12 +6,16 @@ import { Plan } from '../types/plan';
 import SubscriptionService from '../services/subscriptionService';
 import ProductService from '../services/productService';
 import PlanService from '../services/planService';
+import CustomerService, { Customer } from '../services/customerService';
+import { useLabels } from '../hooks/useLabels';
 
 const Subscriptions: React.FC = () => {
     const navigate = useNavigate();
+    const labels = useLabels();
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [plans, setPlans] = useState<Plan[]>([]);
+    const [customers, setCustomers] = useState<Customer[]>([]);
     
     // Form State
     const [isFormVisible, setIsFormVisible] = useState(false);
@@ -24,6 +28,7 @@ const Subscriptions: React.FC = () => {
     const [newSub, setNewSub] = useState<SubscriptionCreate>({
         subscription_number: generateSubscriptionNumber(),
         plan_id: 0,
+        customer_id: 0,
         start_date: new Date().toISOString().split('T')[0], // Current date
         subscription_lines: [], // Aligned with backend
     });
@@ -34,14 +39,16 @@ const Subscriptions: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [fetchedSubs, fetchedProducts, fetchedPlans] = await Promise.all([
+            const [fetchedSubs, fetchedProducts, fetchedPlans, fetchedCustomers] = await Promise.all([
                 SubscriptionService.getAll(),
                 ProductService.getAll(),
-                PlanService.getAll()
+                PlanService.getAll(),
+                CustomerService.getAll()
             ]);
             setSubscriptions(fetchedSubs);
             setProducts(fetchedProducts);
             setPlans(fetchedPlans);
+            setCustomers(fetchedCustomers);
             if (fetchedProducts.length > 0) setSelectedProductId(fetchedProducts[0].id);
         } catch (error) {
             console.error("Failed to fetch data", error);
@@ -142,6 +149,7 @@ const Subscriptions: React.FC = () => {
             setNewSub({ // Reset form
                 subscription_number: generateSubscriptionNumber(),
                 plan_id: 0,
+                customer_id: 0,
                 start_date: new Date().toISOString().split('T')[0],
                 subscription_lines: [],
             });
@@ -179,215 +187,285 @@ const Subscriptions: React.FC = () => {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Subscriptions</h2>
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">Subscriptions</h2>
+                    <p className="text-slate-500 text-sm mt-1 font-medium">Provision and manage recurring services.</p>
+                </div>
                 <button 
                     onClick={() => { setIsFormVisible(!isFormVisible); setCurrentStep(1); setNewSub({
                         subscription_number: generateSubscriptionNumber(),
                         plan_id: 0,
+                        customer_id: 0,
                         start_date: new Date().toISOString().split('T')[0],
                         subscription_lines: [],
-                    }); }} // Reset form and step
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+                    }); }}
+                    className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm ${isFormVisible ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200'}`}
                 >
-                    {isFormVisible ? 'Cancel' : 'New Subscription'}
+                    {isFormVisible ? 'Dismiss Wizard' : 'Create Subscription'}
                 </button>
             </div>
 
             {isFormVisible && (
-                <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-                    <h3 className="text-lg font-semibold mb-4">Create Subscription - Step {currentStep} of 4</h3>
-                    
-                    {currentStep === 1 && (
-                        <div className="space-y-4">
-                            {/* Customer ID input removed - automatically handled by backend */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Subscription Number</label>
-                                <input
-                                    type="text"
-                                    name="subscription_number"
-                                    required
-                                    value={newSub.subscription_number}
-                                    onChange={handleInputChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Start Date</label>
-                                <input
-                                    type="date"
-                                    name="start_date"
-                                    required
-                                    value={newSub.start_date}
-                                    onChange={handleInputChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
-                                />
-                            </div>
-                            <button
-                                onClick={handleNext}
-                                disabled={!newSub.subscription_number || !newSub.start_date}
-                                className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-gray-400"
-                            >
-                                Next
-                            </button>
-                        </div>
-                    )}
-
-                    {currentStep === 2 && (
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Select Product</label>
-                                <select
-                                    value={selectedProductId}
-                                    onChange={handleProductChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
-                                >
-                                    {products.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Select Plan</label>
-                                <select
-                                    name="plan_id"
-                                    required
-                                    value={newSub.plan_id}
-                                    onChange={handleInputChange}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
-                                >
-                                    <option value="">-- Choose a Plan --</option>
-                                    {availablePlans.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name} (${p.price})</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="flex justify-between">
-                                <button
-                                    onClick={handlePrevious}
-                                    className="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500"
-                                >
-                                    Previous
-                                </button>
-                                <button
-                                    onClick={handleNext}
-                                    disabled={!newSub.plan_id}
-                                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-gray-400"
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {currentStep === 3 && (
-                        <div className="space-y-4">
-                            <p className="text-sm text-gray-600">Select products and quantities for this subscription.</p>
-                            {products.filter(p => p.id === selectedProductId).map(product => (
-                                <div key={product.id} className="flex items-center space-x-4">
-                                    <span className="font-medium">{product.name}</span>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        value={newSub.subscription_lines.find(item => item.product_id === product.id)?.quantity || 0}
-                                        onChange={(e) => handleItemChange(product.id, parseInt(e.target.value))}
-                                        className="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
-                                    />
-                                </div>
+                <div className="premium-card executive-shadow overflow-visible">
+                    <div className="border-b border-slate-100 bg-slate-50/50 px-8 py-4 flex justify-between items-center">
+                        <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Provisioning Wizard</h3>
+                        <div className="flex space-x-2">
+                            {[1, 2, 3, 4].map(step => (
+                                <div key={step} className={`w-8 h-1.5 rounded-full transition-all duration-500 ${step <= currentStep ? 'bg-indigo-600' : 'bg-slate-200'}`}></div>
                             ))}
-                             <div className="flex justify-between">
-                                <button
-                                    onClick={handlePrevious}
-                                    className="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500"
-                                >
-                                    Previous
-                                </button>
-                                <button
-                                    onClick={handleNext}
-                                    disabled={newSub.subscription_lines.length === 0}
-                                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-gray-400"
-                                >
-                                    Next
-                                </button>
-                            </div>
                         </div>
-                    )}
-
-                    {currentStep === 4 && (
-                        <div className="space-y-4">
-                            <h4 className="text-lg font-semibold">Subscription Summary</h4>
-
-                            <p><strong>Subscription Number:</strong> {newSub.subscription_number}</p>
-                            <p><strong>Start Date:</strong> {newSub.start_date}</p>
-                            <p><strong>Plan:</strong> {getPlanName(newSub.plan_id)}</p>
-                            <p><strong>Items:</strong></p>
-                            <ul className="list-disc list-inside">
-                                {newSub.subscription_lines.map(item => {
-                                    return (
-                                        <li key={item.product_id}>{item.product_name_snapshot} x {item.quantity} (Total: ${item.line_total.toFixed(2)})</li>
-                                    );
-                                })}
-                            </ul>
-                            <p className="text-lg font-bold">Calculated Total Price: ${calculateTotalPrice()}</p>
-                            <div className="flex justify-between">
-                                <button
-                                    onClick={handlePrevious}
-                                    className="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500"
-                                >
-                                    Previous
-                                </button>
-                                <button
-                                    onClick={handleSubmit} // Final submit
-                                    className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-                                >
-                                    Confirm Subscription
-                                </button>
-                            </div>
+                    </div>
+                    
+                    <div className="p-8">
+                        <div className="mb-8">
+                            <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Step {currentStep} of 4</span>
+                            <h4 className="text-xl font-bold text-slate-900 mt-1">
+                                {currentStep === 1 && `Select ${labels?.customer} & Details`}
+                                {currentStep === 2 && 'Choose Service Plan'}
+                                {currentStep === 3 && 'Configure Line Items'}
+                                {currentStep === 4 && 'Review & Finalize'}
+                            </h4>
                         </div>
-                    )}
+                        
+                        {currentStep === 1 && (
+                            <div className="max-w-xl space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{labels?.customer}</label>
+                                    <select
+                                        name="customer_id"
+                                        required
+                                        value={newSub.customer_id}
+                                        onChange={handleInputChange}
+                                        className="w-full h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all px-4 text-sm font-medium"
+                                    >
+                                        <option value={0}>Choose a {labels?.customer}</option>
+                                        {customers.map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Reference ID</label>
+                                        <input
+                                            type="text"
+                                            name="subscription_number"
+                                            required
+                                            value={newSub.subscription_number}
+                                            onChange={handleInputChange}
+                                            className="w-full h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all px-4 text-sm font-medium"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Start Date</label>
+                                        <input
+                                            type="date"
+                                            name="start_date"
+                                            required
+                                            value={newSub.start_date}
+                                            onChange={handleInputChange}
+                                            className="w-full h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all px-4 text-sm font-medium"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="pt-4">
+                                    <button
+                                        onClick={handleNext}
+                                        disabled={!newSub.subscription_number || !newSub.start_date || !newSub.customer_id}
+                                        className="bg-slate-900 text-white px-8 py-3 rounded-xl text-sm font-bold hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200 active:scale-95 disabled:bg-slate-200 disabled:shadow-none"
+                                    >
+                                        Continue
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentStep === 2 && (
+                            <div className="max-w-xl space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Service Category</label>
+                                    <select
+                                        value={selectedProductId}
+                                        onChange={handleProductChange}
+                                        className="w-full h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all px-4 text-sm font-medium"
+                                    >
+                                        {products.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tier / Plan</label>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {availablePlans.map(p => (
+                                            <button
+                                                key={p.id}
+                                                onClick={() => setNewSub(prev => ({ ...prev, plan_id: p.id }))}
+                                                className={`flex justify-between items-center p-4 border rounded-xl transition-all ${newSub.plan_id === p.id ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:border-slate-300 bg-white'}`}
+                                            >
+                                                <div className="text-left">
+                                                    <p className="text-sm font-bold text-slate-900">{p.name}</p>
+                                                    <p className="text-xs font-medium text-slate-500">Standard service tier</p>
+                                                </div>
+                                                <span className="text-sm font-black text-indigo-600">${p.price}/mo</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between pt-4">
+                                    <button onClick={handlePrevious} className="text-slate-500 text-sm font-bold hover:text-slate-900">Go Back</button>
+                                    <button
+                                        onClick={handleNext}
+                                        disabled={!newSub.plan_id}
+                                        className="bg-slate-900 text-white px-8 py-3 rounded-xl text-sm font-bold hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200 active:scale-95 disabled:bg-slate-200"
+                                    >
+                                        Configuration
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentStep === 3 && (
+                            <div className="max-w-2xl space-y-6">
+                                <p className="text-sm font-medium text-slate-500">Adjust quantities for the selected infrastructure products.</p>
+                                <div className="space-y-3">
+                                    {products.filter(p => p.id === selectedProductId).map(product => (
+                                        <div key={product.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-slate-50/30">
+                                            <div>
+                                                <span className="text-sm font-bold text-slate-900">{product.name}</span>
+                                                <p className="text-[11px] font-medium text-slate-400 mt-0.5">${product.base_price.toFixed(2)} per unit</p>
+                                            </div>
+                                            <div className="flex items-center space-x-3">
+                                                <button onClick={() => handleItemChange(product.id, Math.max(0, (newSub.subscription_lines.find(item => item.product_id === product.id)?.quantity || 0) - 1))} className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-white">-</button>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    readOnly
+                                                    value={newSub.subscription_lines.find(item => item.product_id === product.id)?.quantity || 0}
+                                                    className="w-12 text-center text-sm font-black bg-transparent"
+                                                />
+                                                <button onClick={() => handleItemChange(product.id, (newSub.subscription_lines.find(item => item.product_id === product.id)?.quantity || 0) + 1)} className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-white">+</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="flex justify-between pt-4">
+                                    <button onClick={handlePrevious} className="text-slate-500 text-sm font-bold hover:text-slate-900">Go Back</button>
+                                    <button
+                                        onClick={handleNext}
+                                        disabled={newSub.subscription_lines.length === 0}
+                                        className="bg-slate-900 text-white px-8 py-3 rounded-xl text-sm font-bold hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200 active:scale-95 disabled:bg-slate-200"
+                                    >
+                                        Review Summary
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {currentStep === 4 && (
+                            <div className="max-w-2xl">
+                                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 space-y-6">
+                                    <div className="grid grid-cols-2 gap-8 pb-6 border-b border-slate-200/60">
+                                        <div>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Reference</label>
+                                            <p className="text-sm font-bold text-slate-900 mt-1">{newSub.subscription_number}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Commencement</label>
+                                            <p className="text-sm font-bold text-slate-900 mt-1">{newSub.start_date}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Service Plan</label>
+                                            <p className="text-sm font-bold text-slate-900 mt-1">{getPlanName(newSub.plan_id)}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Status</label>
+                                            <p className="text-sm font-bold text-slate-900 mt-1">Pending Confirmation</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Line Item Breakdown</label>
+                                        {newSub.subscription_lines.map(item => (
+                                            <div key={item.product_id} className="flex justify-between items-center text-sm font-medium">
+                                                <span className="text-slate-600">{item.product_name_snapshot} <span className="text-slate-400 ml-1">×{item.quantity}</span></span>
+                                                <span className="text-slate-900 font-bold">${item.line_total.toFixed(2)}</span>
+                                            </div>
+                                        ))}
+                                        <div className="pt-4 border-t border-slate-200 flex justify-between items-center">
+                                            <span className="text-sm font-black text-slate-900 uppercase tracking-tight">Projected Total</span>
+                                            <span className="text-2xl font-black text-indigo-600">${calculateTotalPrice()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex justify-between pt-8">
+                                    <button onClick={handlePrevious} className="text-slate-500 text-sm font-bold hover:text-slate-900">Review Config</button>
+                                    <button
+                                        onClick={handleSubmit}
+                                        className="bg-indigo-600 text-white px-10 py-4 rounded-xl text-sm font-black hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 active:scale-95"
+                                    >
+                                        Confirm & Provision
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
-            <div className="bg-white shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+            <div className="premium-card executive-shadow min-h-[400px]">
                 {loading ? (
-                    <div className="p-6 text-center text-gray-500">Loading subscriptions...</div>
+                    <div className="p-20 flex flex-col items-center justify-center space-y-4">
+                        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-slate-400 font-medium text-sm">Querying active provisions...</p>
+                    </div>
                 ) : (
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sub Number</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan Details</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Next Bill</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {subscriptions.map((sub) => (
-                                <tr key={sub.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{sub.id}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sub.subscription_number}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sub.customer_id}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getPlanName(sub.plan_id)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                            sub.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                        }`}>
-                                            {sub.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sub.start_date}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sub.next_billing_date}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sub.grand_total?.toFixed(2)}</td>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full">
+                            <thead>
+                                <tr className="border-b border-slate-100 bg-slate-50/50">
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-widest">ID</th>
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-widest">Reference</th>
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-widest">{labels?.customer}</th>
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-widest">Tier Details</th>
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
+                                    <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-widest">Renewal</th>
+                                    <th className="px-6 py-4 text-right text-[11px] font-bold text-slate-500 uppercase tracking-widest">Amount</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {subscriptions.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="px-6 py-20 text-center text-slate-400 font-medium">No active subscriptions found.</td>
+                                    </tr>
+                                ) : (
+                                    subscriptions.map((sub) => (
+                                        <tr key={sub.id} className="hover:bg-slate-50/80 transition-colors group">
+                                            <td className="px-6 py-4 whitespace-nowrap text-[12px] font-bold text-slate-400 uppercase tracking-tighter">#{sub.id}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900">{sub.subscription_number}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-600">
+                                                {customers.find(c => c.id === sub.customer_id)?.name || 'Unknown'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-500">{getPlanName(sub.plan_id)}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`status-pill ${
+                                                    sub.status === 'active' ? 'status-pill-success' : 'status-pill-warning'
+                                                }`}>
+                                                    {sub.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-400">{sub.next_billing_date}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-black text-slate-900">${sub.grand_total?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
         </div>

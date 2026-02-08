@@ -7,6 +7,12 @@ export interface Invoice {
     issue_date: string;
     payment_method?: string;
     paid_date?: string;
+    customer_id?: number;
+    customer?: {
+        id: number;
+        name: string;
+        email?: string;
+    };
 }
 
 export interface InvoicePay {

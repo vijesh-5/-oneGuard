@@ -1,7 +1,9 @@
 export interface User {
   id: number;
   email: string;
+  username?: string; // Add username
   full_name?: string;
+  mode: 'business' | 'personal' | 'portal'; // Add portal mode
 }
 
 export interface LoginRequest {

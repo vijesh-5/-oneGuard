@@ -32,6 +32,8 @@ app.include_router(discounts.router, prefix="/discounts", tags=["discounts"])
 app.include_router(payments.router, prefix="/payments", tags=["payments"])
 app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 app.include_router(invoices.router, prefix="/invoices", tags=["invoices"])
+from .routers import customers
+app.include_router(customers.router)
 
 @app.get("/")
 async def root():
