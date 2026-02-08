@@ -16,7 +16,18 @@ const Subscriptions: React.FC = () => {
     // Form State
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [selectedProductId, setSelectedProductId] = useState<number>(0);
-    const [newSub, setNewSub] = useState<SubscriptionCreate>({ customer_name: '', plan_id: 0, items: [] });
+    
+    const generateSubscriptionNumber = (): string => {
+        return `SUB-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    };
+
+    const [newSub, setNewSub] = useState<SubscriptionCreate>({
+        subscription_number: generateSubscriptionNumber(),
+        plan_id: 0,
+        start_date: new Date().toISOString().split('T')[0], // Current date
+        subscription_lines: [], // Aligned with backend
+    });
+
     const [currentStep, setCurrentStep] = useState(1);
     const [loading, setLoading] = useState(true);
 
@@ -57,15 +68,15 @@ const Subscriptions: React.FC = () => {
         const { name, value } = e.target;
         setNewSub(prev => ({
             ...prev,
-            [name]: name === 'plan_id' ? parseInt(value) : value
+            [name]: name === 'plan_id' || name === 'customer_id' ? parseInt(value) : value
         }));
     };
 
     const handleNext = () => {
         // Basic validation before moving to the next step
-        if (currentStep === 1 && !newSub.customer_name) return;
+        if (currentStep === 1 && (!newSub.subscription_number || !newSub.start_date)) return;
         if (currentStep === 2 && !newSub.plan_id) return;
-        if (currentStep === 3 && newSub.items.length === 0) return; // Ensure at least one item is added
+        if (currentStep === 3 && newSub.subscription_lines.length === 0) return; // Ensure at least one item is added
         setCurrentStep(prev => prev + 1);
     };
 
@@ -75,31 +86,75 @@ const Subscriptions: React.FC = () => {
 
     const handleItemChange = (productId: number, quantity: number) => {
         setNewSub(prev => {
-            const existingItemIndex = prev.items.findIndex(item => item.product_id === productId);
+            const product = products.find(p => p.id === productId);
+            if (!product) return prev; // Should not happen if productId is valid
+
+            const existingItemIndex = prev.subscription_lines.findIndex(item => item.product_id === productId);
+
             if (quantity <= 0) {
-                return { ...prev, items: prev.items.filter(item => item.product_id !== productId) };
+                return { ...prev, subscription_lines: prev.subscription_lines.filter(item => item.product_id !== productId) };
             } else if (existingItemIndex > -1) {
-                const updatedItems = [...prev.items];
-                updatedItems[existingItemIndex] = { ...updatedItems[existingItemIndex], quantity };
-                return { ...prev, items: updatedItems };
+                const updatedLines = [...prev.subscription_lines];
+                const updatedLine = {
+                    ...updatedLines[existingItemIndex],
+                    quantity: quantity,
+                    line_total: product.base_price * quantity * (1 + (updatedLines[existingItemIndex].tax_percent || 0) / 100 - (updatedLines[existingItemIndex].discount_percent || 0) / 100)
+                };
+                updatedLines[existingItemIndex] = updatedLine;
+                return { ...prev, subscription_lines: updatedLines };
             } else {
-                return { ...prev, items: [...prev.items, { product_id: productId, quantity }] };
+                // Default tax/discount for new line item
+                const tax_percent = 0; // Assuming 0% tax for simplicity for now
+                const discount_percent = 0; // Assuming 0% discount for simplicity for now
+                const line_total = product.base_price * quantity * (1 + tax_percent / 100 - discount_percent / 100);
+
+                return {
+                    ...prev,
+                    subscription_lines: [
+                        ...prev.subscription_lines,
+                        {
+                            product_id: productId,
+                            product_name_snapshot: product.name,
+                            unit_price_snapshot: product.base_price,
+                            quantity: quantity,
+                            tax_percent: tax_percent,
+                            discount_percent: discount_percent,
+                            line_total: line_total
+                        }
+                    ]
+                };
             }
         });
     };
 
     const handleSubmit = async () => { // Removed 'e: React.FormEvent' as it's now internal to the wizard
         try {
-            const createdSubscription = await SubscriptionService.create(newSub); // Assume API returns created sub
-            alert('Subscription created successfully!');
+            // Ensure status is set, if not provided in newSub, backend will default
+            const payload = { ...newSub, status: newSub.status || 'draft' };
+
+            const createdSubscription = await SubscriptionService.create(payload); // Assume API returns created sub
+            
+            // Now confirm the subscription to generate the invoice
+            const confirmedSubscription = await SubscriptionService.confirm(createdSubscription.id);
+            
+            alert('Subscription created and confirmed successfully!');
             setIsFormVisible(false);
-            setNewSub({ customer_name: '', plan_id: 0, items: [] }); // Reset with items
+            setNewSub({ // Reset form
+                subscription_number: generateSubscriptionNumber(),
+                plan_id: 0,
+                start_date: new Date().toISOString().split('T')[0],
+                subscription_lines: [],
+            });
             setCurrentStep(1); // Reset wizard step
             fetchData();
-            navigate(`/invoices/${createdSubscription.id}`); // Redirect to invoice page
-        } catch (error) {
+            window.dispatchEvent(new CustomEvent('dashboardRefresh')); // Dispatch event to refresh dashboard
+            navigate(`/invoices/${confirmedSubscription.invoice_id}`);
+        } catch (error: any) {
             console.error("Failed to create subscription", error);
-            alert('Failed to create subscription.');
+            const message = error.response?.data?.detail || 'Failed to create subscription.';
+            alert(message);
+            // Regenerate subscription number to prevent unique constraint violation on retry
+            setNewSub(prev => ({ ...prev, subscription_number: generateSubscriptionNumber() }));
         }
     };
 
@@ -117,11 +172,8 @@ const Subscriptions: React.FC = () => {
             total += selectedPlan.price;
         }
 
-        newSub.items.forEach(item => {
-            const product = products.find(p => p.id === item.product_id);
-            if (product) {
-                total += product.base_price * item.quantity;
-            }
+        newSub.subscription_lines.forEach(line => {
+            total += line.line_total;
         });
         return total.toFixed(2);
     };
@@ -131,7 +183,12 @@ const Subscriptions: React.FC = () => {
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Subscriptions</h2>
                 <button 
-                    onClick={() => { setIsFormVisible(!isFormVisible); setCurrentStep(1); setNewSub({ customer_name: '', plan_id: 0, items: [] }); }} // Reset form and step
+                    onClick={() => { setIsFormVisible(!isFormVisible); setCurrentStep(1); setNewSub({
+                        subscription_number: generateSubscriptionNumber(),
+                        plan_id: 0,
+                        start_date: new Date().toISOString().split('T')[0],
+                        subscription_lines: [],
+                    }); }} // Reset form and step
                     className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
                 >
                     {isFormVisible ? 'Cancel' : 'New Subscription'}
@@ -144,20 +201,32 @@ const Subscriptions: React.FC = () => {
                     
                     {currentStep === 1 && (
                         <div className="space-y-4">
+                            {/* Customer ID input removed - automatically handled by backend */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Customer Name</label>
+                                <label className="block text-sm font-medium text-gray-700">Subscription Number</label>
                                 <input
                                     type="text"
-                                    name="customer_name"
+                                    name="subscription_number"
                                     required
-                                    value={newSub.customer_name}
+                                    value={newSub.subscription_number}
+                                    onChange={handleInputChange}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Start Date</label>
+                                <input
+                                    type="date"
+                                    name="start_date"
+                                    required
+                                    value={newSub.start_date}
                                     onChange={handleInputChange}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
                                 />
                             </div>
                             <button
                                 onClick={handleNext}
-                                disabled={!newSub.customer_name}
+                                disabled={!newSub.subscription_number || !newSub.start_date}
                                 className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-gray-400"
                             >
                                 Next
@@ -222,7 +291,7 @@ const Subscriptions: React.FC = () => {
                                     <input
                                         type="number"
                                         min="0"
-                                        value={newSub.items.find(item => item.product_id === product.id)?.quantity || 0}
+                                        value={newSub.subscription_lines.find(item => item.product_id === product.id)?.quantity || 0}
                                         onChange={(e) => handleItemChange(product.id, parseInt(e.target.value))}
                                         className="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
                                     />
@@ -237,7 +306,7 @@ const Subscriptions: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={handleNext}
-                                    disabled={newSub.items.length === 0}
+                                    disabled={newSub.subscription_lines.length === 0}
                                     className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-gray-400"
                                 >
                                     Next
@@ -249,18 +318,19 @@ const Subscriptions: React.FC = () => {
                     {currentStep === 4 && (
                         <div className="space-y-4">
                             <h4 className="text-lg font-semibold">Subscription Summary</h4>
-                            <p><strong>Customer:</strong> {newSub.customer_name}</p>
+
+                            <p><strong>Subscription Number:</strong> {newSub.subscription_number}</p>
+                            <p><strong>Start Date:</strong> {newSub.start_date}</p>
                             <p><strong>Plan:</strong> {getPlanName(newSub.plan_id)}</p>
                             <p><strong>Items:</strong></p>
                             <ul className="list-disc list-inside">
-                                {newSub.items.map(item => {
-                                    const prod = products.find(p => p.id === item.product_id);
+                                {newSub.subscription_lines.map(item => {
                                     return (
-                                        <li key={item.product_id}>{prod?.name} x {item.quantity}</li>
+                                        <li key={item.product_id}>{item.product_name_snapshot} x {item.quantity} (Total: ${item.line_total.toFixed(2)})</li>
                                     );
                                 })}
                             </ul>
-                            <p className="text-lg font-bold">Total Price: ${calculateTotalPrice()}</p>
+                            <p className="text-lg font-bold">Calculated Total Price: ${calculateTotalPrice()}</p>
                             <div className="flex justify-between">
                                 <button
                                     onClick={handlePrevious}
@@ -288,17 +358,21 @@ const Subscriptions: React.FC = () => {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sub Number</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer ID</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan Details</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Next Bill</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {subscriptions.map((sub) => (
                                 <tr key={sub.id}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{sub.id}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sub.customer_name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{sub.subscription_number}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sub.customer_id}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{getPlanName(sub.plan_id)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -307,7 +381,9 @@ const Subscriptions: React.FC = () => {
                                             {sub.status}
                                         </span>
                                     </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sub.start_date}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{sub.next_billing_date}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sub.grand_total?.toFixed(2)}</td>
                                 </tr>
                             ))}
                         </tbody>

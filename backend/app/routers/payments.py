@@ -1,13 +1,30 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, date # Import date
 
 from ..database import get_db
 from ..models import Payment as DBPayment, Invoice as DBInvoice
-from ..schemas import Payment, PaymentCreate, PaymentBase # PaymentBase is used for simulation as well
+from ..schemas import Payment, PaymentCreate, PaymentBase, InvoiceUpdate, Invoice # Import Invoice
 
 router = APIRouter()
+
+@router.patch("/invoices/{invoice_id}/mark-as-paid", response_model=Invoice, status_code=status.HTTP_200_OK)
+def mark_invoice_as_paid(invoice_id: int, invoice_update: InvoiceUpdate, db: Session = Depends(get_db)):
+    db_invoice = db.query(DBInvoice).filter(DBInvoice.id == invoice_id).first()
+    if not db_invoice:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found")
+
+    if db_invoice.status == "paid":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invoice is already paid.")
+    
+    db_invoice.status = "paid"
+    db_invoice.payment_method = invoice_update.payment_method
+    db_invoice.paid_date = invoice_update.paid_date if invoice_update.paid_date else date.today()
+
+    db.commit()
+    db.refresh(db_invoice)
+    return db_invoice
 
 @router.post("/payments/", response_model=Payment, status_code=status.HTTP_201_CREATED)
 def create_payment(payment: PaymentCreate, db: Session = Depends(get_db)):

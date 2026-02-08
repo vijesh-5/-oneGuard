@@ -78,3 +78,28 @@ This is just the beginning! Here are some key areas for future development:
 *   **User Interface:** A complete and user-friendly website (frontend) for customers and administrators to manage everything easily.
 
 This system provides a strong base upon which to build a complete and powerful subscription management solution.
+## 4. Current Implementation Status & Review
+
+This section provides a detailed review of the current backend implementation, comparing the codebase against the PRD requirements.
+
+### Achieved Milestones
+- **Core Models Implemented:** `User`, `Product`, `Plan`, `Subscription`, `SubscriptionLine`, `Invoice`, `InvoiceLine`, `Tax`, `Discount`, `Payment`. All schemas match the PRD specifications.
+- **Authentication:** Full JWT-based auth flow (`/signup`, `/token`, `/me`) is functional.
+- **Data Integrity:** Relationships between models (e.g., Subscription -> Invoice -> Payment) are correctly established in SQLAlchemy.
+- **Confirmation Engine:** The subscription confirmation logic (`PATCH /subscriptions/{id}/confirm`) correctly calculates totals, sets billing dates, and generates invoices with snapshot lines.
+- **Validation:** Pydantic models ensure request/response validation across all endpoints.
+
+### Discrepancies & Mandatory Improvements
+The following items were identified as missing or requiring adjustment to fully align with the PRD:
+
+#### 1. Missing Standard CRUD Endpoints
+Several core modules lack standard retrieval and management endpoints specified in the PRD:
+- **Products (`/products`):** Missing `GET /{id}`, `PATCH /{id}`, `DELETE /{id}`.
+- **Plans (`/plans`):** Missing `GET /{id}`, `PATCH /{id}`, `DELETE /{id}`.
+- **Subscriptions (`/subscriptions`):** Missing `GET /{id}`.
+
+#### 2. Duplicate Functionality
+- **Invoice Payment:** Both `invoices.py` (`PATCH /{id}/pay`) and `payments.py` (`PATCH /invoices/{id}/mark-as-paid`) implement similar logic. **Recommendation:** Consolidate logic into `invoices.py` as the primary source of truth for invoice status changes.
+
+#### 3. Documentation Gaps
+- **Dashboard Stats:** The `/dashboard/stats` endpoint is implemented but was not documented in the initial PRD API list.

@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import SubscriptionService from '../services/subscriptionService';
-import InvoiceService from '../services/invoiceService';
-import { Subscription } from '../types/subscription';
-import { Invoice } from '../types/invoice';
+import api from '../services/api'; // Import api
 
 const Dashboard: React.FC = () => {
     const [activeSubscriptions, setActiveSubscriptions] = useState(0);
@@ -14,27 +11,29 @@ const Dashboard: React.FC = () => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                // Fetch subscriptions
-                const subs: Subscription[] = await SubscriptionService.getAll();
-                setActiveSubscriptions(subs.filter(sub => sub.status === 'active').length);
-
-                // Fetch invoices
-                const invoices: Invoice[] = await InvoiceService.getAll();
-                const unpaid = invoices.filter(inv => inv.status !== 'paid');
-                setUnpaidInvoices(unpaid.length);
-                
-                // Calculate total revenue from paid invoices (simplistic for now)
-                const paidInvoices = invoices.filter(inv => inv.status === 'paid');
-                const revenue = paidInvoices.reduce((sum, inv) => sum + inv.amount, 0);
-                setTotalRevenue(revenue);
-
+                const response = await api.get('/dashboard/stats');
+                const data = response.data;
+                setActiveSubscriptions(data.active_subscriptions);
+                setTotalRevenue(data.total_revenue);
+                setUnpaidInvoices(data.unpaid_invoices);
             } catch (error) {
                 console.error("Failed to fetch dashboard data", error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchData();
+
+        fetchData(); // Initial fetch
+
+        const handleDashboardRefresh = () => {
+            fetchData();
+        };
+
+        window.addEventListener('dashboardRefresh', handleDashboardRefresh);
+
+        return () => {
+            window.removeEventListener('dashboardRefresh', handleDashboardRefresh);
+        };
     }, []);
 
     return (

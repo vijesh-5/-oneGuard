@@ -5,10 +5,29 @@ from datetime import date, timedelta, datetime
 import random # For generating invoice_number for now
 
 from ..database import get_db
-from ..models import Subscription as DBSubscription, Plan as DBPlan, Invoice as DBInvoice, SubscriptionLine as DBSubscriptionLine, InvoiceLine as DBInvoiceLine, Product as DBProduct
+from ..models import Subscription as DBSubscription, Plan as DBPlan, Invoice as DBInvoice, SubscriptionLine as DBSubscriptionLine, InvoiceLine as DBInvoiceLine, Product as DBProduct, User
 from ..schemas import Subscription, SubscriptionCreate, SubscriptionConfirm, SubscriptionLineCreate, InvoiceCreate, InvoiceLineCreate, Invoice
+from ..auth_utils import get_current_user
 
 router = APIRouter()
+
+@router.get("/", response_model=List[Subscription], tags=["subscriptions"])
+def read_subscriptions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    subscriptions = db.query(DBSubscription).filter(DBSubscription.customer_id == current_user.id).offset(skip).limit(limit).all()
+    return subscriptions
+
+@router.get("/{subscription_id}", response_model=Subscription, tags=["subscriptions"])
+def read_subscription(subscription_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    subscription = db.query(DBSubscription).filter(DBSubscription.id == subscription_id).first()
+    if not subscription:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found")
+    
+    # Verify ownership
+    if subscription.customer_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found")
+        
+    return subscription
+
 
 def calculate_next_billing_date(start_date: date, interval: str) -> date:
     if interval == "monthly":
@@ -29,8 +48,8 @@ def calculate_next_billing_date(start_date: date, interval: str) -> date:
     else:
         raise ValueError(f"Unknown interval: {interval}")
 
-@router.post("/subscriptions/", response_model=Subscription, status_code=status.HTTP_201_CREATED)
-def create_subscription(subscription: SubscriptionCreate, db: Session = Depends(get_db)):
+@router.post("/", response_model=Subscription, status_code=status.HTTP_201_CREATED)
+def create_subscription(subscription: SubscriptionCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Calculate totals from subscription lines
     subtotal = 0.0
     tax_total = 0.0
@@ -49,9 +68,12 @@ def create_subscription(subscription: SubscriptionCreate, db: Session = Depends(
         discount_total += line_discount_amount
         grand_total += line_data.line_total
 
+    # Use current_user.id as customer_id
+    customer_id = current_user.id
+
     db_subscription = DBSubscription(
         subscription_number=subscription.subscription_number,
-        customer_id=subscription.customer_id,
+        customer_id=customer_id,
         plan_id=subscription.plan_id,
         status=subscription.status,
         start_date=subscription.start_date,
@@ -86,10 +108,14 @@ def create_subscription(subscription: SubscriptionCreate, db: Session = Depends(
 
     return db_subscription
 
-@router.patch("/subscriptions/{subscription_id}/confirm", response_model=SubscriptionConfirm)
-def confirm_subscription(subscription_id: int, db: Session = Depends(get_db)):
+@router.patch("/{subscription_id}/confirm", response_model=SubscriptionConfirm)
+def confirm_subscription(subscription_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     db_subscription = db.query(DBSubscription).filter(DBSubscription.id == subscription_id).first()
     if not db_subscription:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found")
+
+    # Verify ownership
+    if db_subscription.customer_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found")
 
     # Only allow confirmation from 'draft' or 'quotation' status
@@ -177,6 +203,7 @@ def confirm_subscription(subscription_id: int, db: Session = Depends(get_db)):
 
     return SubscriptionConfirm(
         status=db_subscription.status,
+        invoice_id=new_invoice.id, # Include invoice_id in the response
         next_billing_date=db_subscription.next_billing_date,
         confirmed_at=db_subscription.confirmed_at,
         subtotal=db_subscription.subtotal,

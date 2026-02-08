@@ -53,7 +53,7 @@ const Login: React.FC = () => {
                 type="text"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                placeholder="Username"
                 value={formData.username}
                 onChange={handleChange}
                 disabled={loading}
@@ -89,6 +89,11 @@ const Login: React.FC = () => {
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
+            <div className="flex items-center justify-center mt-4">
+              <a href="/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
+                Don't have an account? Sign Up
+              </a>
+            </div>
           </div>
         </form>
       </div>

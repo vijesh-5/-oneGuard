@@ -3,6 +3,20 @@ from sqlalchemy.orm import relationship # Import relationship
 from datetime import datetime # Import datetime for created_at default
 from .database import Base
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    subscriptions = relationship("Subscription", back_populates="customer")
+    invoices = relationship("Invoice", back_populates="customer")
+
+
 class Product(Base):
     __tablename__ = "products"
 
@@ -37,9 +51,8 @@ class Plan(Base):
 class Subscription(Base):
     __tablename__ = "subscriptions"
     id = Column(Integer, primary_key=True, index=True)
-    subscription_number = Column(String, unique=True, index=True) # NEW
-    customer_id = Column(Integer) # NEW (assuming future Customer model)
-    plan_id = Column(Integer, ForeignKey("plans.id"))
+    subscription_number = Column(String, unique=True, index=True)
+    customer_id = Column(Integer, ForeignKey("users.id")) # Link to User model
 
     status = Column(String, default="draft") # "draft", "quotation", "confirmed", "active", "closed" (expanded states)
     start_date = Column(Date)
@@ -57,9 +70,11 @@ class Subscription(Base):
     confirmed_at = Column(DateTime, nullable=True) # NEW
     closed_at = Column(DateTime, nullable=True) # NEW
 
+    plan_id = Column(Integer, ForeignKey("plans.id"))
     plan = relationship("Plan")
     invoices = relationship("Invoice", back_populates="subscription") # Add relationship to invoices
     subscription_lines = relationship("SubscriptionLine", back_populates="subscription") # NEW relationship
+    customer = relationship("User", back_populates="subscriptions") # Relationship to User
 
 class SubscriptionLine(Base):
     __tablename__ = "subscription_lines"
@@ -83,12 +98,14 @@ class Invoice(Base):
     id = Column(Integer, primary_key=True, index=True)
     invoice_number = Column(String, unique=True, index=True) # NEW
     subscription_id = Column(Integer, ForeignKey("subscriptions.id"))
-    customer_id = Column(Integer) # NEW (assuming future Customer model)
+    customer_id = Column(Integer, ForeignKey("users.id")) # Link to User model
 
     issue_date = Column(Date) # Renamed from invoice_date
     due_date = Column(Date)
 
     status = Column(String, default="draft") # NEW states: "draft", "confirmed", "paid", "cancelled"
+
+    paid_date = Column(Date, nullable=True) # NEW
 
     subtotal = Column(Float, default=0.0) # NEW
     tax_total = Column(Float, default=0.0) # NEW
@@ -98,6 +115,7 @@ class Invoice(Base):
     subscription = relationship("Subscription", back_populates="invoices")
     invoice_lines = relationship("InvoiceLine", back_populates="invoice") # NEW relationship
     payments = relationship("Payment", back_populates="invoice") # NEW relationship
+    customer = relationship("User", back_populates="invoices") # Relationship to User
 
 class InvoiceLine(Base):
     __tablename__ = "invoice_lines"

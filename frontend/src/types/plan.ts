@@ -2,23 +2,25 @@ export interface Plan {
     id: number;
     product_id: number;
     name: string;
-    interval: string;
+    billing_period: string; // Changed from interval
     price: number;
-    billing_cycle: string;
-    renewal_allowed: boolean;
-    pause_allowed: boolean;
-    validity_start_date?: string;
-    validity_end_date?: string;
+    min_quantity: number;
+    auto_close: boolean;
+    pausable: boolean;
+    renewable: boolean;
+    start_date?: string;
+    end_date?: string;
 }
 
 export interface PlanCreate {
     product_id: number;
     name: string;
-    interval: string;
+    billing_period: string; // Changed from interval
     price: number;
-    billing_cycle: string;
-    renewal_allowed?: boolean;
-    pause_allowed?: boolean;
-    validity_start_date?: string;
-    validity_end_date?: string;
+    min_quantity?: number;
+    auto_close?: boolean;
+    pausable?: boolean;
+    renewable?: boolean;
+    start_date?: string;
+    end_date?: string;
 }

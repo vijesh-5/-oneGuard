@@ -8,7 +8,7 @@ from ..schemas import Product, ProductCreate
 
 router = APIRouter()
 
-@router.post("/products/", response_model=Product, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=Product, status_code=status.HTTP_201_CREATED)
 def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     db_product = DBProduct(
         name=product.name,
@@ -22,7 +22,40 @@ def create_product(product: ProductCreate, db: Session = Depends(get_db)):
     db.refresh(db_product)
     return db_product
 
-@router.get("/products/", response_model=List[Product])
+@router.get("/", response_model=List[Product])
 def read_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     products = db.query(DBProduct).offset(skip).limit(limit).all()
     return products
+
+@router.get("/{product_id}", response_model=Product)
+def read_product(product_id: int, db: Session = Depends(get_db)):
+    product = db.query(DBProduct).filter(DBProduct.id == product_id).first()
+    if product is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    return product
+
+@router.patch("/{product_id}", response_model=Product)
+def update_product(product_id: int, product: ProductCreate, db: Session = Depends(get_db)):
+    db_product = db.query(DBProduct).filter(DBProduct.id == product_id).first()
+    if db_product is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    
+    db_product.name = product.name
+    db_product.base_price = product.base_price
+    db_product.type = product.type
+    db_product.description = product.description
+    db_product.is_active = product.is_active
+    
+    db.commit()
+    db.refresh(db_product)
+    return db_product
+
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_product(product_id: int, db: Session = Depends(get_db)):
+    db_product = db.query(DBProduct).filter(DBProduct.id == product_id).first()
+    if db_product is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    
+    db.delete(db_product)
+    db.commit()
+    return {"ok": True}

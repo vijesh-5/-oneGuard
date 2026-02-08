@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Invoice } from '../types/invoice';
 import InvoiceService from '../services/invoiceService';
 
@@ -31,22 +32,21 @@ const Invoices: React.FC = () => {
         }
 
         try {
-            // Assuming InvoiceService has an update method
-            // This might need to be created/implemented in invoiceService.ts
-            await InvoiceService.update(invoiceId, { status: 'paid', payment_method: paymentMethod, paid_date: new Date().toISOString().split('T')[0] });
+            await InvoiceService.pay(invoiceId, paymentMethod);
             alert(`Invoice ${invoiceId} marked as paid via ${paymentMethod}.`);
             // Refresh invoices to show updated status
             const updatedInvoices = invoices.map(inv => 
                 inv.id === invoiceId 
                 ? { ...inv, status: 'paid', payment_method: paymentMethod, paid_date: new Date().toISOString().split('T')[0] } 
                 : inv
-            );
+            ) as Invoice[]; // Type assertion to avoid partial updates issue if interface is strict
             setInvoices(updatedInvoices);
             setSelectedPaymentMethod(prev => { // Clear selected payment method for this invoice
                 const newMethods = { ...prev };
                 delete newMethods[invoiceId];
                 return newMethods;
             });
+            window.dispatchEvent(new CustomEvent('dashboardRefresh')); // Dispatch event to refresh dashboard
         } catch (error) {
             console.error(`Failed to mark invoice ${invoiceId} as paid`, error);
             alert(`Failed to mark invoice ${invoiceId} as paid.`);
@@ -78,9 +78,11 @@ const Invoices: React.FC = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {invoices.map((invoice) => (
                                 <tr key={invoice.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{invoice.id}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <Link to={`/invoices/${invoice.id}`} className="text-indigo-600 hover:text-indigo-900">#{invoice.id}</Link>
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{invoice.subscription_id}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${invoice.amount.toFixed(2)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${invoice.grand_total !== undefined ? invoice.grand_total.toFixed(2) : 'N/A'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                                             invoice.status === 'paid' ? 'bg-green-100 text-green-800' : 

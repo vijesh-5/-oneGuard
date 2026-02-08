@@ -14,9 +14,19 @@ The following features and infrastructure components have been implemented:
     *   Configured SQLAlchemy (`backend/app/database.py`) with an engine, `SessionLocal`, and a declarative `Base` for ORM models.
     *   Implemented a `get_db` dependency for FastAPI to manage database sessions.
     *   Added a `create_all_tables()` function to programmatically create database schemas based on defined models.
-*   **Authentication Module (`backend/app/routers/auth.py`):**
-    *   Implemented a mock `POST /login` endpoint that accepts `username` and `password` and returns a placeholder `access_token` for initial frontend integration.
-    *   Defined `LoginRequest` and `LoginResponse` Pydantic schemas.
+*   **Authentication Module:**
+    *   **Implemented JWT (JSON Web Token) based authentication system.**
+    *   **User Model (`backend/app/models.py`):** Defined a `User` model with `id`, `username`, `email`, `hashed_password`, `is_active`, and `created_at`.
+    *   **Authentication Schemas (`backend/app/schemas.py`):** Added `UserCreate`, `UserResponse`, and `Token` schemas for request/response validation and JWT structure.
+    *   **Authentication Utilities (`backend/app/auth_utils.py`):** Implemented functions for:
+        *   Password hashing and verification using `passlib[bcrypt]`.
+        *   JWT creation (`create_access_token`) and decoding (`decode_access_token`) using `python-jose`.
+        *   Dependency functions (`get_current_user`, `get_current_active_user`) for extracting and validating user information from JWT tokens.
+    *   **Authentication Router (`backend/app/routers/auth.py`):**
+        *   `POST /auth/signup`: Endpoint for user registration, including username/email uniqueness checks and password hashing.
+        *   `POST /auth/token`: Endpoint for user login, verifying credentials and issuing a JWT access token.
+        *   `GET /auth/users/me`: Protected endpoint to retrieve the current authenticated user's profile, demonstrating JWT authorization.
+    *   **Configuration (`backend/app/config.py`):** Centralized JWT `SECRET_KEY`, `ALGORITHM`, and `ACCESS_TOKEN_EXPIRE_MINUTES`.
 *   **Product Management Module (`backend/app/routers/products.py`):**
     *   Defined the `Product` SQLAlchemy model (`backend/app/models.py`) with `id`, `name`, and `base_price`.
     *   Created `ProductBase`, `ProductCreate`, and `Product` Pydantic schemas for API request/response validation.
@@ -94,7 +104,7 @@ The following features and infrastructure components have been implemented:
 *   **FastAPI Best Practices:** Utilizes FastAPI's dependency injection system for database sessions and Pydantic for robust data validation and serialization.
 *   **Error Handling:** Standard `HTTPException`s are used for common API error conditions, providing clear status codes and details.
 *   **Environment Variable Management:** Centralized `load_dotenv()` call in `database.py` ensures that the database connection string is loaded correctly and consistently.
-*   **Dependency Management:** `backend/requirements.txt` was populated with specific versions of required packages (`fastapi`, `uvicorn`, `python-dotenv`, `sqlalchemy`, `psycopg2-binary`) and confirmed successful installation within the virtual environment.
+*   **Dependency Management:** `backend/requirements.txt` was populated with specific versions of required packages (`fastapi`, `uvicorn`, `python-dotenv`, `sqlalchemy`, `psycopg2-binary`, `passlib[bcrypt]`, `python-jose`) and confirmed successful installation within the virtual environment.
 *   **Database Initialization:** Ensured `create_all_tables()` is called on application startup in `backend/app/main.py` for automatic schema creation during development.
 *   **CORS Configuration:** Updated `CORSMiddleware` origins in `backend/app/main.py` to include `http://localhost:5173` to resolve frontend/backend communication issues.
 *   **Module Import Resolution:** Corrected absolute module imports (e.g., `backend.app.routers`) to relative imports (e.g., `from .routers` or `from ..schemas`) across `backend/app/main.py`, `backend/app/routers/*.py`, `backend/app/models.py`, and `backend/app/database.py` to resolve `ModuleNotFoundError` issues and a `SyntaxError`.
@@ -102,12 +112,8 @@ The following features and infrastructure components have been implemented:
 
 ## 3. Remaining/Future Tasks
 
-*   **Authentication:**
-    *   Implement full JWT (JSON Web Token) generation and verification for secure authentication and authorization across all protected endpoints.
-    *   Add endpoints for user registration, password reset, and token refresh.
 *   **User Management:**
-    *   Create a `User` model with appropriate fields (e.g., hashed password, email, roles).
-    *   Implement CRUD (Create, Read, Update, Delete) endpoints for managing users.
+    *   Implement CRUD (Create, Read, Update, Delete) endpoints for managing users (beyond just signup).
 *   **Comprehensive Invoice Management:**
     *   Add dedicated endpoints (`GET /invoices`, `GET /invoices/{id}`, `PATCH /invoices/{id}/status`) for retrieving and managing invoice details and statuses.
     *   Implement logic for recurring invoice generation based on subscription cycles.

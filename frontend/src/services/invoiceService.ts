@@ -1,16 +1,16 @@
 import { Invoice } from '../types/invoice';
-// import api from './api';
-
-const MOCK_INVOICES: Invoice[] = [
-    { id: 5001, subscription_id: 101, amount: 10.99, status: 'paid', due_date: '2023-01-01' },
-    { id: 5002, subscription_id: 101, amount: 10.99, status: 'pending', due_date: '2023-02-01' },
-];
+import api from './api';
 
 const InvoiceService = {
     getAll: async (): Promise<Invoice[]> => {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        return [...MOCK_INVOICES];
-        // return (await api.get('/invoices')).data;
+        return (await api.get('/invoices/')).data;
+    },
+    // Adding a getById method for consistency and use in Invoice.tsx
+    getById: async (invoiceId: number): Promise<Invoice> => {
+        return (await api.get(`/invoices/${invoiceId}/`)).data;
+    },
+    pay: async (invoiceId: number, paymentMethod: string): Promise<Invoice> => {
+        return (await api.patch(`/invoices/${invoiceId}/pay`, { payment_method: paymentMethod })).data;
     }
 };
 

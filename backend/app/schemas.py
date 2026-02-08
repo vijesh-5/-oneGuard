@@ -2,14 +2,33 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date, datetime # Import datetime for Product schema
 
+# User Schemas
+class UserBase(BaseModel):
+    username: str
+    email: str
+
+class UserCreate(UserBase):
+    password: str
+
+class UserResponse(UserBase):
+    id: int
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+# Token Schemas
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
 class LoginRequest(BaseModel):
     username: str
     password: str
 
-class LoginResponse(BaseModel):
-    message: str
-    access_token: Optional[str] = None
-    token_type: str = "bearer"
+# LoginResponse is replaced by Token for successful logins, but we might keep it for error messages if needed.
+# For now, let's assume successful login directly returns Token.
 
 class ProductBase(BaseModel):
     name: str
@@ -51,7 +70,7 @@ class Plan(PlanBase):
 
 class SubscriptionBase(BaseModel):
     subscription_number: str
-    customer_id: int
+    customer_id: Optional[int] = None
     plan_id: int
     status: str = "draft" # "draft", "quotation", "confirmed", "active", "closed"
     start_date: date
@@ -63,6 +82,7 @@ class SubscriptionCreate(SubscriptionBase):
 
 class Subscription(SubscriptionBase):
     id: int
+    customer_id: int # Override to be required in response if needed, but Optional is fine for base
     next_billing_date: Optional[date] = None
     subtotal: float = 0.0
     tax_total: float = 0.0
@@ -78,12 +98,14 @@ class Subscription(SubscriptionBase):
 
 class SubscriptionConfirm(BaseModel):
     status: str
+    invoice_id: int # Added for frontend redirect
     next_billing_date: Optional[date] = None
     confirmed_at: Optional[datetime] = None
     subtotal: float = 0.0
     tax_total: float = 0.0
     discount_total: float = 0.0
     grand_total: float = 0.0
+
 
 class SubscriptionLineBase(BaseModel):
     product_id: Optional[int] = None
@@ -108,7 +130,7 @@ class SubscriptionLine(SubscriptionLineBase):
 class InvoiceBase(BaseModel):
     invoice_number: str
     subscription_id: int
-    customer_id: int
+    customer_id: Optional[int] = None
     issue_date: date
     due_date: date
     status: str = "draft" # "draft", "confirmed", "paid", "cancelled"
@@ -116,9 +138,19 @@ class InvoiceBase(BaseModel):
     tax_total: float = 0.0
     discount_total: float = 0.0
     grand_total: float = 0.0
+    payment_method: Optional[str] = None # NEW
+    paid_date: Optional[date] = None # NEW
 
 class InvoiceCreate(InvoiceBase):
     pass
+
+class InvoicePay(BaseModel):
+    payment_method: str
+
+class InvoiceUpdate(BaseModel): # NEW
+    status: Optional[str] = None
+    payment_method: Optional[str] = None
+    paid_date: Optional[date] = None
 
 class Invoice(InvoiceBase):
     id: int
@@ -193,6 +225,7 @@ class Payment(PaymentBase):
 
     class Config:
         orm_mode = True
+
 
 
 

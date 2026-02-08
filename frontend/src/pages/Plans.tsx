@@ -10,13 +10,12 @@ const Plans: React.FC = () => {
     const [newPlan, setNewPlan] = useState<PlanCreate>({
         product_id: 0,
         name: '',
-        interval: 'monthly',
+        billing_period: 'monthly', // Changed from interval
         price: 0,
-        billing_cycle: 'monthly',
-        renewal_allowed: true,
-        pause_allowed: true,
-        validity_start_date: '',
-        validity_end_date: ''
+        renewable: true,
+        pausable: true,
+        start_date: '', // Changed from validity_start_date
+        end_date: '' // Changed from validity_end_date
     });
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -45,10 +44,12 @@ const Plans: React.FC = () => {
     }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value, type, checked } = e.target as HTMLInputElement | HTMLSelectElement;
+        const { name, value, type } = e.target;
+        const checked = (e.target as HTMLInputElement).checked;
+        
         setNewPlan(prev => ({
             ...prev,
-            [name]: type === 'checkbox' ? checked : (name === 'price' || name === 'product_id' ? parseFloat(value) : value)
+            [name]: type === 'checkbox' ? checked : (name === 'price' || name === 'product_id' ? (value === '' ? 0 : parseFloat(value)) : value)
         }));
     };
 
@@ -59,13 +60,12 @@ const Plans: React.FC = () => {
             setNewPlan({
                 product_id: products[0]?.id || 0,
                 name: '',
-                interval: 'monthly',
+                billing_period: 'monthly', // Changed from interval
                 price: 0,
-                billing_cycle: 'monthly',
-                renewal_allowed: true,
-                pause_allowed: true,
-                validity_start_date: '',
-                validity_end_date: ''
+                renewable: true,
+                pausable: true,
+                start_date: '', // Changed from validity_start_date
+                end_date: '' // Changed from validity_end_date
             });
             setIsFormVisible(false);
             fetchData();
@@ -120,10 +120,10 @@ const Plans: React.FC = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Interval</label>
+                            <label className="block text-sm font-medium text-gray-700">Billing Period</label>
                             <select
-                                name="interval"
-                                value={newPlan.interval}
+                                name="billing_period" // Changed from interval
+                                value={newPlan.billing_period}
                                 onChange={handleInputChange}
                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
                             >
@@ -145,59 +145,47 @@ const Plans: React.FC = () => {
                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Billing Cycle</label>
-                            <select
-                                name="billing_cycle"
-                                value={newPlan.billing_cycle}
-                                onChange={handleInputChange}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
-                            >
-                                <option value="monthly">Monthly</option>
-                                <option value="quarterly">Quarterly</option>
-                                <option value="annually">Annually</option>
-                            </select>
-                        </div>
+                        {/* Removed Billing Cycle */}
                         <div className="flex items-center">
                             <input
                                 type="checkbox"
-                                name="renewal_allowed"
-                                checked={newPlan.renewal_allowed}
-                                onChange={(e) => setNewPlan(prev => ({ ...prev, renewal_allowed: e.target.checked }))}
+                                name="renewable"
+                                checked={newPlan.renewable}
+                                onChange={(e) => setNewPlan(prev => ({ ...prev, renewable: e.target.checked }))}
                                 className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                             />
-                            <label htmlFor="renewal_allowed" className="ml-2 block text-sm text-gray-900">
+                            <label htmlFor="renewable" className="ml-2 block text-sm text-gray-900">
                                 Renewal Allowed
                             </label>
                         </div>
                         <div className="flex items-center">
                             <input
                                 type="checkbox"
-                                name="pause_allowed"
-                                checked={newPlan.pause_allowed}
-                                onChange={(e) => setNewPlan(prev => ({ ...prev, pause_allowed: e.target.checked }))}
+                                name="pausable"
+                                checked={newPlan.pausable}
+                                onChange={(e) => setNewPlan(prev => ({ ...prev, pausable: e.target.checked }))}
                                 className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                             />
-                            <label htmlFor="pause_allowed" className="ml-2 block text-sm text-gray-900">
+                            <label htmlFor="pausable" className="ml-2 block text-sm text-gray-900">
                                 Pause Allowed
                             </label>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Validity Start Date</label>
+                            <label className="block text-sm font-medium text-gray-700">Start Date</label>
                             <input
                                 type="date"
-                                name="validity_start_date"
-                                value={newPlan.validity_start_date || ''}
+                                name="start_date" // Changed from validity_start_date
+                                value={newPlan.start_date || ''}
                                 onChange={handleInputChange}
                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Validity End Date</label>
+                            <label className="block text-sm font-medium text-gray-700">End Date</label>
                             <input
                                 type="date"
-                                name="validity_end_date"
-                                value={newPlan.validity_end_date || ''}
+                                name="end_date" // Changed from validity_end_date
+                                value={newPlan.end_date || ''}
                                 onChange={handleInputChange}
                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm border p-2"
                             />
@@ -221,9 +209,8 @@ const Plans: React.FC = () => {
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interval</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Billing Period</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Billing Cycle</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Renewal Allowed</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pause Allowed</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valid From</th>
@@ -235,13 +222,12 @@ const Plans: React.FC = () => {
                                 <tr key={plan.id}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{getProductName(plan.product_id)}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{plan.interval}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{plan.billing_period}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${plan.price.toFixed(2)}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{plan.billing_cycle}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.renewal_allowed ? 'Yes' : 'No'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.pause_allowed ? 'Yes' : 'No'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.validity_start_date || 'N/A'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.validity_end_date || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.renewable ? 'Yes' : 'No'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.pausable ? 'Yes' : 'No'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.start_date || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{plan.end_date || 'N/A'}</td>
                                 </tr>
                             ))}
                         </tbody>

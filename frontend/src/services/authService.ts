@@ -1,30 +1,49 @@
-import { LoginRequest, Token } from '../types/auth';
-// import api from './api'; // We will uncomment this when the backend is ready
+import { LoginRequest, Token, UserCreate } from '../types/auth';
+import api from './api';
 
-const MOCK_TOKEN: Token = {
-    access_token: "fake-jwt-token-123",
-    token_type: "bearer"
-};
+const TOKEN_KEY = 'access_token';
 
 const AuthService = {
     login: async (credentials: LoginRequest): Promise<Token> => {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Mock Validation
-        if (credentials.username && credentials.password) {
-            return MOCK_TOKEN;
-        }
-        throw new Error("Invalid credentials");
+        const form_data = new URLSearchParams();
+        form_data.append('username', credentials.username);
+        form_data.append('password', credentials.password);
 
-        // REAL IMPLEMENTATION (Future):
-        // const response = await api.post<Token>('/login', credentials);
-        // return response.data;
+        const response = await api.post<Token>('/auth/token', form_data, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        });
+        AuthService.setToken(response.data.access_token);
+        return response.data;
+    },
+
+    signup: async (username: string, email: string, password: string): Promise<any> => {
+        const newUser: UserCreate = { username, email, password };
+        const response = await api.post('/auth/signup', newUser);
+        return response.data;
     },
 
     logout: () => {
-        localStorage.removeItem('token');
+        AuthService.removeToken();
+    },
+
+    getToken: (): string | null => {
+        return localStorage.getItem(TOKEN_KEY);
+    },
+
+    setToken: (token: string) => {
+        localStorage.setItem(TOKEN_KEY, token);
+    },
+
+    removeToken: () => {
+        localStorage.removeItem(TOKEN_KEY);
+    },
+
+    isAuthenticated: (): boolean => {
+        return !!AuthService.getToken();
     }
 };
 
 export default AuthService;
+
